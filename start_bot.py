@@ -1,13 +1,15 @@
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler, Filters
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity
 from config import Config
 import logging
 import subprocess
-import io
+import os
 
 ABOUT = range(1)
 
 allow_users = [{"username":"Oilnur","id":"3608708"}]
+
+path_mp3 = "mp3/"
 
 # проверка на разрешенного пользователя
 def is_allow_user(func):
@@ -28,7 +30,8 @@ class iTelegramBot:
             level=level_loggining)
         self.bot = Updater(token)
 
-        mp3_handler = MessageHandler(filters = Filters.text, callback=self.get_mp3_from_youtube)
+        mp3_handler = MessageHandler(filters = Filters.text & (Filters.entity(MessageEntity.URL) |
+                    Filters.entity(MessageEntity.TEXT_LINK)), callback=self.get_mp3_from_youtube)
         self.bot.dispatcher.add_handler(mp3_handler)
 
         # регистрация обработчика используя паттерн срабатывания
@@ -36,6 +39,8 @@ class iTelegramBot:
         # регистрация команд     
         self.reg_handler("start",self.start)
         self.reg_handler("about",self.about)
+        self.reg_handler("delmp3",self.clear_all_mp3)
+        self.reg_handler("help",self.help_command)
 
     def reg_handler(self, command=None,hand=None):
         """ регистрация команд которые обрабатывает бот """
@@ -46,6 +51,26 @@ class iTelegramBot:
     def about(self, bot, update):
         """ сообщает какие есть возможности у бота """
         update.message.reply_text("Я конвертирую youtube клип в mp3.")
+
+    @is_allow_user
+    def help_command(self, bot, update):
+        str1 = "/start - подружиться с ботом."
+        str2 = "/about - описания бота."
+        str3 = "/delmp3 - очистить папку сохраненных mp3 файлов из сервера."
+        str4 = "Пришлите ссылку youtube чтобы получить mp3 файл в ответ."
+        update.message.reply_text("Список команд:\n{}\n{}\n{}\n{}\n".format(str1, str2, str3, str4))
+
+    @is_allow_user
+    def clear_all_mp3(self, bot, update):
+        update.message.reply_text("Очистка папки mp3 от файлов...")
+        files = os.listdir(path_mp3)
+        update.message.reply_text(files)
+        for file in files:
+            if file.endswith(".mp3"):
+                os.remove(os.path.join(path_mp3,file))
+        update.message.reply_text("Очистка завершена.")
+
+
     
     @is_allow_user
     def start(self, bot, update):
@@ -76,8 +101,11 @@ class iTelegramBot:
             if str_search in s:
                 file_mp3 = s[len(str_search):].strip()
                 break
+        try:
+            bot.send_audio(chat_id=update.message.chat_id, audio = open(file_mp3, 'rb'))
+        except FileNotFoundError:
+            update.message.reply_text("Внутреняя ошибка: или урл не доступен, или конвертация невозможна.\nПопробуйте позже или другую ссылку.")
 
-        bot.send_audio(chat_id=update.message.chat_id, audio = open(file_mp3, 'rb'))
         update.message.reply_text("Конец конвертации!")
 
 
