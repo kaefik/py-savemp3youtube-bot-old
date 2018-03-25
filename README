@@ -1,0 +1,14 @@
+Структура конфиг файла для бота - config.ini
+[BOT]
+token = токен
+
+
+Полезные ссылки:
+    * https://github.com/python-telegram-bot/python-telegram-bot/wiki/Extensions-%E2%80%93-Your-first-Bot
+    * https://github.com/python-telegram-bot/python-telegram-bot/wiki/Code-snippets
+
+
+https://api.telegram.org/botТОКЕН/sendMessage?chat_id=ЧАТ_ID&text=HelloBot 
+
+How to download an MP3 track from a YouTube video
+   * youtube-dl --extract-audio --audio-format mp3 <video URL>
