@@ -5,6 +5,8 @@ import logging
 import subprocess
 import os
 
+from urllib3.exceptions import ProtocolError
+
 ABOUT = range(1)
 
 allow_users = [{"username":"Oilnur","id":"3608708"}]
@@ -90,8 +92,12 @@ class iTelegramBot:
         print("УРЛ: {}".format(url_youtube))
         cmds = ['youtube-dl','--extract-audio','--audio-format', 'mp3', '--output', r"mp3/%(title)s.%(ext)s" , url_youtube]
 
+        print("get_mp3_from_youtube start subprocess begin")
         with subprocess.Popen(cmds, stdout=subprocess.PIPE) as proc:
             result = proc.stdout.read()
+
+        print("get_mp3_from_youtube start subprocess end")
+        print("result = ", result)       
 
         result = result.decode("utf-8")
         str_result = result.split("\n")
@@ -102,9 +108,16 @@ class iTelegramBot:
                 file_mp3 = s[len(str_search):].strip()
                 break
         try:
-            bot.send_audio(chat_id=update.message.chat_id, audio = open(file_mp3, 'rb'))
+            print("filename = ", file_mp3)
+            update.message.reply_text(f"Попытка отправить вам файл: {file_mp3}")
+            bot.send_audio(chat_id=update.message.chat_id, audio = open(file_mp3, 'rb'), timeout=1000)
         except FileNotFoundError:
+            update.message.reply_text(f"Вывод результат команды {cmds}:\n {result}")
             update.message.reply_text("Внутреняя ошибка: или урл не доступен, или конвертация невозможна.\nПопробуйте позже или другую ссылку.")
+        except Exception as err:
+            print("------!!!! Внутреняя ошибка: ", err)
+            update.message.reply_text(f"------!!!! Внутреняя ошибка: {err}")
+
 
         update.message.reply_text("Конец конвертации!")
 
