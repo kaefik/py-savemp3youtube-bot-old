@@ -12,3 +12,6 @@ https://api.telegram.org/botТОКЕН/sendMessage?chat_id=ЧАТ_ID&text=HelloB
 
 How to download an MP3 track from a YouTube video
    * youtube-dl --extract-audio --audio-format mp3 <video URL>
+
+Установка библиотек:
+ * pip3 install python-telegram-bot   (https://python-telegram-bot.org/)
