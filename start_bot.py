@@ -1,5 +1,5 @@
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler, Filters
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity, KeyboardButton, ReplyKeyboardMarkup
 from config import Config
 import logging
 import subprocess
@@ -12,6 +12,15 @@ ABOUT = range(1)
 allow_users = [{"username":"Oilnur","id":"3608708"}]
 
 path_mp3 = "mp3/"
+
+
+# Commands menu
+main_menu_keyboard = [[KeyboardButton('/help')], 
+                    [KeyboardButton('/delmp3')],
+                    [KeyboardButton('/about')]]
+                    
+reply_kb_markup = ReplyKeyboardMarkup(main_menu_keyboard,  resize_keyboard=True,
+    one_time_keyboard=True)
 
 # проверка на разрешенного пользователя
 def is_allow_user(func):
@@ -60,7 +69,7 @@ class iTelegramBot:
         str2 = "/about - описания бота."
         str3 = "/delmp3 - очистить папку сохраненных mp3 файлов из сервера."
         str4 = "Пришлите ссылку youtube чтобы получить mp3 файл в ответ."
-        update.message.reply_text("Список команд:\n{}\n{}\n{}\n{}\n".format(str1, str2, str3, str4))
+        update.message.reply_text(f"Список команд:\n{str1}\n{str2}\n{str3}\n{str4}\n", reply_markup=reply_kb_markup)
 
     @is_allow_user
     def clear_all_mp3(self, bot, update):
@@ -70,13 +79,14 @@ class iTelegramBot:
         for file in files:
             if file.endswith(".mp3"):
                 os.remove(os.path.join(path_mp3,file))
-        update.message.reply_text("Очистка завершена.")
+        update.message.reply_text("Очистка завершена.", reply_markup=reply_kb_markup)
 
 
     
     @is_allow_user
     def start(self, bot, update):
-        update.message.reply_text('Привет! {}! Я рад видеть тебя!\nПришли мне ссылку на клип ютуба, обратно получите его аудио дорожку.'.format(update.message.from_user.first_name))
+        update.message.reply_text(f"Привет! {update.message.from_user.first_name}! Я рад видеть тебя!\nПришли мне ссылку на клип ютуба, обратно получите его аудио дорожку.",
+             reply_markup=reply_kb_markup)
         
     def run(self):
         """ запуск бота """   
@@ -119,7 +129,7 @@ class iTelegramBot:
             update.message.reply_text(f"------!!!! Внутреняя ошибка: {err}")
 
 
-        update.message.reply_text("Конец конвертации!")
+        update.message.reply_text("Конец конвертации!", reply_markup=reply_kb_markup)
 
 
 cfg = Config("config.ini")
