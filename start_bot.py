@@ -7,6 +7,8 @@ import os
 
 from urllib3.exceptions import ProtocolError
 
+from i_utils import string_escape
+
 ABOUT = range(1)
 
 allow_users = [{"username":"Oilnur","id":"3608708"}]
@@ -75,10 +77,11 @@ class iTelegramBot:
     def clear_all_mp3(self, bot, update):
         update.message.reply_text("Очистка папки mp3 от файлов...")
         files = os.listdir(path_mp3)
-        update.message.reply_text(files)
+        #update.message.reply_text(files)
         for file in files:
             if file.endswith(".mp3"):
                 os.remove(os.path.join(path_mp3,file))
+                update.message.reply_text(f"удаляем {string_escape(file)}")
         update.message.reply_text("Очистка завершена.", reply_markup=reply_kb_markup)
 
 
