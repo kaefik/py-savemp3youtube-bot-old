@@ -10,9 +10,9 @@ from urllib3.exceptions import ProtocolError
 from i_utils import string_escape
 
 ABOUT = range(1)
+allow_users = []
 
 cfg = Config("config.ini")
-
 # список пользователей которым разрешен доступ к боту
 # allow_users = [{"username":"Oilnur","id":"3608708"}]
 allow_users = cfg.allow_users
@@ -28,24 +28,27 @@ reply_kb_markup = ReplyKeyboardMarkup(main_menu_keyboard,  resize_keyboard=True,
     one_time_keyboard=True)
 
 # проверка на разрешенного пользователя
-def is_allow_user(func):
-    def wrapped(*args, **kwargs):
-        print("allow_users = ", allow_users)
-        nameuser = args[2].message.from_user.username
-        print("Имя пользователя: ", nameuser)
-        for user in allow_users:
-            if user["username"]==nameuser:
-                return func(*args, **kwargs)
-        args[2].message.reply_text(text="Доступ запрещен. Обратитесь к администратору.")
-        return False
-    return wrapped
+def is_allow_user(allow_users):
+    def decorator(func):
+        def wrapped(*args, **kwargs):
+            print("allow_users = ", allow_users)
+            nameuser = args[2].message.from_user.username
+            print("Имя пользователя: ", nameuser)
+            for user in allow_users:
+                if user["username"]==nameuser:
+                    return func(*args, **kwargs)
+            args[2].message.reply_text(text="Доступ запрещен. Обратитесь к администратору.")
+            return False
+        return wrapped
+    return decorator
 
 
 class iTelegramBot:
-    def __init__(self, token=None,level_loggining=logging.INFO):
+    def __init__(self, token=None,level_loggining=logging.INFO, allow_users=[]):
         logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             level=level_loggining)
         self.bot = Updater(token)
+        self.allow_users = allow_users
 
         mp3_handler = MessageHandler(filters = Filters.text & (Filters.entity(MessageEntity.URL) |
                     Filters.entity(MessageEntity.TEXT_LINK)), callback=self.get_mp3_from_youtube)
@@ -69,7 +72,7 @@ class iTelegramBot:
         """ сообщает какие есть возможности у бота """
         update.message.reply_text("Я конвертирую youtube клип в mp3.")
 
-    @is_allow_user
+    @is_allow_user(allow_users)
     def help_command(self, bot, update):
         str1 = "/start - подружиться с ботом."
         str2 = "/about - описания бота."
@@ -77,7 +80,7 @@ class iTelegramBot:
         str4 = "Пришлите ссылку youtube чтобы получить mp3 файл в ответ."
         update.message.reply_text(f"Список команд:\n{str1}\n{str2}\n{str3}\n{str4}\n", reply_markup=reply_kb_markup)
 
-    @is_allow_user
+    @is_allow_user(allow_users)
     def clear_all_mp3(self, bot, update):
         update.message.reply_text("Очистка папки mp3 от файлов...")
         files = os.listdir(path_mp3)
@@ -89,7 +92,7 @@ class iTelegramBot:
         update.message.reply_text("Очистка завершена.", reply_markup=reply_kb_markup)
 
     
-    @is_allow_user
+    @is_allow_user(allow_users)
     def start(self, bot, update):
         update.message.reply_text(f"Привет! {update.message.from_user.first_name}! Я рад видеть тебя!\nПришли мне ссылку на клип ютуба, обратно получите его аудио дорожку.",
              reply_markup=reply_kb_markup)
@@ -100,7 +103,7 @@ class iTelegramBot:
         self.bot.start_polling()
         self.bot.idle()
 
-    @is_allow_user
+    @is_allow_user(allow_users)
     def get_mp3_from_youtube(self, bot, update):
         update.message.reply_text("Начало конвертации ютуб клипа в mp3...")
         #  youtube-dl --extract-audio --audio-format mp3 <video URL>
@@ -139,7 +142,8 @@ class iTelegramBot:
 
 
 def main():
-    tgbot = iTelegramBot(cfg.token,logging.DEBUG)
+
+    tgbot = iTelegramBot(cfg.token,logging.DEBUG, allow_users=allow_users)
     tgbot.run()
 
 if __name__ =="__main__":
