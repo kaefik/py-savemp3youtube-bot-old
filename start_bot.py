@@ -11,12 +11,15 @@ from i_utils import string_escape
 
 ABOUT = range(1)
 
-allow_users = [{"username":"Oilnur","id":"3608708"}]
+cfg = Config("config.ini")
+
+# список пользователей которым разрешен доступ к боту
+# allow_users = [{"username":"Oilnur","id":"3608708"}]
+allow_users = cfg.allow_users
 
 path_mp3 = "mp3/"
 
-
-# Commands menu
+# кнопки команд для обычных пользователей
 main_menu_keyboard = [[KeyboardButton('/help')], 
                     [KeyboardButton('/delmp3')],
                     [KeyboardButton('/about')]]
@@ -27,6 +30,7 @@ reply_kb_markup = ReplyKeyboardMarkup(main_menu_keyboard,  resize_keyboard=True,
 # проверка на разрешенного пользователя
 def is_allow_user(func):
     def wrapped(*args, **kwargs):
+        print("allow_users = ", allow_users)
         nameuser = args[2].message.from_user.username
         print("Имя пользователя: ", nameuser)
         for user in allow_users:
@@ -84,7 +88,6 @@ class iTelegramBot:
                 update.message.reply_text(f"удаляем {string_escape(file)}")
         update.message.reply_text("Очистка завершена.", reply_markup=reply_kb_markup)
 
-
     
     @is_allow_user
     def start(self, bot, update):
@@ -135,6 +138,9 @@ class iTelegramBot:
         update.message.reply_text("Конец конвертации!", reply_markup=reply_kb_markup)
 
 
-cfg = Config("config.ini")
-tgbot = iTelegramBot(cfg.token,logging.DEBUG)
-tgbot.run()
+def main():
+    tgbot = iTelegramBot(cfg.token,logging.DEBUG)
+    tgbot.run()
+
+if __name__ =="__main__":
+    main()
