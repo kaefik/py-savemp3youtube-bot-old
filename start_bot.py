@@ -27,6 +27,10 @@ main_menu_keyboard = [[KeyboardButton('/help')],
 reply_kb_markup = ReplyKeyboardMarkup(main_menu_keyboard,  resize_keyboard=True,
     one_time_keyboard=True)
 
+
+admin_menu_keyboard =[["AddUser", "DelUser", "HelpAdmin", "ExitAdmin"]]
+admin_kb_markup = ReplyKeyboardMarkup(admin_menu_keyboard, one_time_keyboard=True)
+
 # проверка на разрешенного пользователя
 def is_allow_user(allow_users):
     def decorator(func):
@@ -75,6 +79,9 @@ class iTelegramBot:
                     Filters.entity(MessageEntity.TEXT_LINK)), callback=self.get_mp3_from_youtube)
         self.bot.dispatcher.add_handler(mp3_handler)
 
+        admin_handler = MessageHandler(filters = Filters.regex('^(AddUser|DelUser|HelpAdmin|ExitAdmin)$'), callback=self.run_admin_command)
+        self.bot.dispatcher.add_handler(admin_handler)
+
         # регистрация обработчика используя паттерн срабатывания
         # self.bot.dispatcher.add_handler(CallbackQueryHandler(self.about2,pattern="^about_bot$")) 
         # регистрация команд     
@@ -97,7 +104,8 @@ class iTelegramBot:
     @is_allow_admin_user(allow_admin_user)
     def admin_command(self, bot, update):
         """ переключение в режим администратора """
-        update.message.reply_text("Переключение в режим администратора.")
+        update.message.reply_text("Переключение в режим администратора.", 
+            reply_markup = admin_kb_markup)
 
     @is_allow_user(allow_users)
     def help_command(self, bot, update):
@@ -132,6 +140,15 @@ class iTelegramBot:
         logging.debug("Start telegram bot")  
         self.bot.start_polling()
         self.bot.idle()
+
+    @is_allow_admin_user(allow_admin_user)
+    def run_admin_command(self, bot, update):
+        current_cmd = update.message.text
+        update.message.reply_text(f"Выполнение команды: {current_cmd}", 
+            reply_markup = admin_kb_markup)
+        if current_cmd == "ExitAdmin":
+            update.message.reply_text(f"Выходим из режима администратора бота.", 
+            reply_markup = reply_kb_markup)
 
     @is_allow_user(allow_users)
     def get_mp3_from_youtube(self, bot, update):
