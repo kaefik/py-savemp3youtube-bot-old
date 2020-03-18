@@ -16,7 +16,7 @@ class Config:
         self.token = str(config['BOT']['token'])
         # список пользователей        
         self.admin = {"username": str(config['ADMIN']['username']),
-            "id": str(config['ADMIN']['userid'])}
+            "id": int(config['ADMIN']['userid'])}
         # TODO: сделать загрузку пользователей которые имеют доступ к боту
         self.allow_users =[]
         self.allow_users.append(self.admin)

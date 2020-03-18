@@ -31,9 +31,11 @@ def is_allow_user(allow_users):
         def wrapped(*args, **kwargs):
             print("allow_users = ", allow_users)
             nameuser = args[2].message.from_user.username
+            iduser = args[2].message.from_user.id
             print("Имя пользователя: ", nameuser)
             for user in allow_users:
-                if user["username"]==nameuser:
+                #if user["username"]==nameuser:
+                if user["id"]==iduser:
                     return func(*args, **kwargs)
             args[2].message.reply_text(text="Доступ запрещен. Обратитесь к администратору.")
             return False
