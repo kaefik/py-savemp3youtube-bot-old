@@ -1,5 +1,6 @@
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler, Filters
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity, KeyboardButton, ReplyKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, MessageEntity, \
+    KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from config import Config
 import logging
 import subprocess
@@ -14,6 +15,7 @@ ABOUT = range(1)
 cfg = Config("config.ini")
 # список пользователей которым разрешен доступ к боту
 allow_users = cfg.allow_users
+allow_admin_user = cfg.admin
 
 path_mp3 = "mp3/"
 
@@ -29,18 +31,35 @@ reply_kb_markup = ReplyKeyboardMarkup(main_menu_keyboard,  resize_keyboard=True,
 def is_allow_user(allow_users):
     def decorator(func):
         def wrapped(*args, **kwargs):
-            print("allow_users = ", allow_users)
+            # print("allow_users = ", allow_users)
             nameuser = args[2].message.from_user.username
             iduser = args[2].message.from_user.id
-            print("Имя пользователя: ", nameuser)
+            # print("Имя пользователя: ", nameuser)
             for user in allow_users:
-                #if user["username"]==nameuser:
+                # if user["username"]==nameuser:
                 if user["id"]==iduser:
                     return func(*args, **kwargs)
             args[2].message.reply_text(text="Доступ запрещен. Обратитесь к администратору.")
             return False
         return wrapped
     return decorator
+
+# проверка на администратора бота (только один администратор)
+def is_allow_admin_user(allow_admin_user):
+    def decorator(func):
+        def wrapped(*args, **kwargs):
+            print("allow_admin_user = ", allow_admin_user)
+            nameuser = args[2].message.from_user.username
+            iduser = args[2].message.from_user.id
+            print("Имя администратора: ", nameuser)              
+            if allow_admin_user["id"]==iduser:
+                return func(*args, **kwargs)
+
+            args[2].message.reply_text(text="Операция запрещена. Вы НЕ администратор.")
+            return False
+        return wrapped
+    return decorator
+
 
 
 class iTelegramBot:
@@ -49,6 +68,8 @@ class iTelegramBot:
             level=level_loggining)
         self.bot = Updater(token)
         self.allow_users = allow_users
+        # флаг переключение в режим администратора бота
+        self.flag_admin = False # True - режим администратора бота
 
         mp3_handler = MessageHandler(filters = Filters.text & (Filters.entity(MessageEntity.URL) |
                     Filters.entity(MessageEntity.TEXT_LINK)), callback=self.get_mp3_from_youtube)
@@ -57,10 +78,11 @@ class iTelegramBot:
         # регистрация обработчика используя паттерн срабатывания
         # self.bot.dispatcher.add_handler(CallbackQueryHandler(self.about2,pattern="^about_bot$")) 
         # регистрация команд     
-        self.reg_handler("start",self.start)
-        self.reg_handler("about",self.about)
-        self.reg_handler("delmp3",self.clear_all_mp3)
-        self.reg_handler("help",self.help_command)
+        self.reg_handler("start", self.start)
+        self.reg_handler("about", self.about)
+        self.reg_handler("delmp3", self.clear_all_mp3)
+        self.reg_handler("help", self.help_command)
+        self.reg_handler("admin", self.admin_command)
 
     def reg_handler(self, command=None,hand=None):
         """ регистрация команд которые обрабатывает бот """
@@ -72,13 +94,19 @@ class iTelegramBot:
         """ сообщает какие есть возможности у бота """
         update.message.reply_text("Я конвертирую youtube клип в mp3.")
 
+    @is_allow_admin_user(allow_admin_user)
+    def admin_command(self, bot, update):
+        """ переключение в режим администратора """
+        update.message.reply_text("Переключение в режим администратора.")
+
     @is_allow_user(allow_users)
     def help_command(self, bot, update):
         str1 = "/start - подружиться с ботом."
         str2 = "/about - описания бота."
         str3 = "/delmp3 - очистить папку сохраненных mp3 файлов из сервера."
         str4 = "Пришлите ссылку youtube чтобы получить mp3 файл в ответ."
-        update.message.reply_text(f"Список команд:\n{str1}\n{str2}\n{str3}\n{str4}\n", reply_markup=reply_kb_markup)
+        str5 = "/admin - переключиться в режим администратора."
+        update.message.reply_text(f"Список команд:\n{str1}\n{str2}\n{str3}\n{str5}\n{str4}\n", reply_markup=reply_kb_markup)
 
     @is_allow_user(allow_users)
     def clear_all_mp3(self, bot, update):
@@ -107,7 +135,8 @@ class iTelegramBot:
 
     @is_allow_user(allow_users)
     def get_mp3_from_youtube(self, bot, update):
-        update.message.reply_text("Начало конвертации ютуб клипа в mp3...")
+        update.message.reply_text("Начало конвертации ютуб клипа в mp3...", 
+            reply_markup = ReplyKeyboardRemove())
         #  youtube-dl --extract-audio --audio-format mp3 <video URL>
         url_youtube = update.message.text
 
