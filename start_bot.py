@@ -81,11 +81,13 @@ class iTelegramBot:
     @is_allow_user(allow_users)
     def clear_all_mp3(self, bot, update):
         update.message.reply_text("Очистка папки mp3 от файлов...")
-        files = os.listdir(path_mp3)
+        user_folder=f"{update.message.from_user.id}-{update.message.from_user.username}"
+        folder_mp3 = f"{path_mp3}/{user_folder}"
+        files = os.listdir(folder_mp3)
         #update.message.reply_text(files)
         for file in files:
             if file.endswith(".mp3"):
-                os.remove(os.path.join(path_mp3,file))
+                os.remove(os.path.join(folder_mp3,file))
                 update.message.reply_text(f"удаляем {string_escape(file)}")
         update.message.reply_text("Очистка завершена.", reply_markup=reply_kb_markup)
 
@@ -106,8 +108,13 @@ class iTelegramBot:
         update.message.reply_text("Начало конвертации ютуб клипа в mp3...")
         #  youtube-dl --extract-audio --audio-format mp3 <video URL>
         url_youtube = update.message.text
-        print("УРЛ: {}".format(url_youtube))
-        cmds = ['youtube-dl','--extract-audio','--audio-format', 'mp3', '--output', r"mp3/%(title)s.%(ext)s" , url_youtube]
+
+        #print("Имя пользователя: ", update.message.from_user)
+        user_folder=f"{update.message.from_user.id}-{update.message.from_user.username}"
+
+
+        print("УРЛ: {}".format(url_youtube))        
+        cmds = ['youtube-dl','--extract-audio','--audio-format', 'mp3', '--output', r"mp3/"+user_folder+r"/%(title)s.%(ext)s" , url_youtube]
 
         print("get_mp3_from_youtube start subprocess begin")
         with subprocess.Popen(cmds, stdout=subprocess.PIPE) as proc:
