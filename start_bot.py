@@ -10,11 +10,9 @@ from urllib3.exceptions import ProtocolError
 from i_utils import string_escape
 
 ABOUT = range(1)
-allow_users = []
 
 cfg = Config("config.ini")
 # список пользователей которым разрешен доступ к боту
-# allow_users = [{"username":"Oilnur","id":"3608708"}]
 allow_users = cfg.allow_users
 
 path_mp3 = "mp3/"
