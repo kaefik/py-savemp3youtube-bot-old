@@ -6,6 +6,8 @@
 import os
 from dotenv import load_dotenv  # pip3 install python-dotenv
 from telethon import TelegramClient, events, connection  # pip3 install Telethon
+import asyncio
+import subprocess
 
 dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
 print((dotenv_path))
@@ -25,6 +27,21 @@ bot = TelegramClient(app_name, app_api_id, app_api_hash,
     connection=connection.ConnectionTcpMTProxyRandomizedIntermediate,
     proxy=proxy).start(bot_token=bot_token)
 client = [] # клиент
+
+
+async def run_cmd(cmd):
+    proc = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+
+    stdout, stderr = await proc.communicate()
+
+    print(f'[{cmd!r} exited with {proc.returncode}]')
+    if stdout:
+        print(f'[stdout]\n{stdout.decode()}')        
+    if stderr:
+        print(f'[stderr]\n{stderr.decode()}')
 
 @bot.on(events.NewMessage(pattern='/start'))
 async def start(event):
@@ -59,8 +76,39 @@ async def get_mp3_from_youtube(event):
     sender = await event.get_sender()
     buttons = await event.get_buttons()
     print(sender.id)
+    user_folder = sender.id
+    print(event.raw_text)
+    url_youtube = event.raw_text
+    cmds = ['youtube-dl','--extract-audio','--audio-format', 'mp3', '--output', r"mp3/"+user_folder+r"/%(title)s.%(ext)s" , url_youtube]
     await event.respond("Начало конвертации ютуб клипа в mp3...")
     # TODO: сделать конвертирование в mp3
+    print("get_mp3_from_youtube start subprocess begin")
+    with subprocess.Popen(cmds, stdout=subprocess.PIPE) as proc:
+        result = proc.stdout.read()
+
+    print("get_mp3_from_youtube start subprocess end")
+    print("result = ", result)       
+
+    result = result.decode("utf-8")
+    str_result = result.split("\n")
+    str_search = "[ffmpeg] Destination:"
+    file_mp3 = ""
+    for s in str_result:
+        if str_search in s:
+            file_mp3 = s[len(str_search):].strip()
+            break
+    try:
+        print("filename = ", file_mp3)
+        event.respond(f"Попытка отправить вам файл: {file_mp3}")
+        # bot.send_audio(chat_id=update.message.chat_id, audio = open(file_mp3, 'rb'), timeout=1000)
+    except FileNotFoundError:
+        event.respond(f"Вывод результат команды {cmds}:\n {result}")
+        event.respond("Внутреняя ошибка: или урл не доступен, или конвертация невозможна.\nПопробуйте позже или другую ссылку.")
+    except Exception as err:
+        print("------!!!! Внутреняя ошибка: ", err)
+        event.respond(f"------!!!! Внутреняя ошибка: {err}")
+    # END сделать конвертирование в mp3
+
     await event.respond("Конец конвертации!")
 
 def main():
