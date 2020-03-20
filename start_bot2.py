@@ -72,42 +72,48 @@ async def help(event):
 # получение урл
 @bot.on(events.NewMessage(pattern=r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)"))
 async def get_mp3_from_youtube(event):
-    chat = await event.get_input_chat()
-    sender = await event.get_sender()
-    buttons = await event.get_buttons()
-    print(sender.id)
-    user_folder = sender.id
-    print(event.raw_text)
-    url_youtube = event.raw_text
-    cmds = ['youtube-dl','--extract-audio','--audio-format', 'mp3', '--output', r"mp3/"+user_folder+r"/%(title)s.%(ext)s" , url_youtube]
-    await event.respond("Начало конвертации ютуб клипа в mp3...")
-    # TODO: сделать конвертирование в mp3
-    print("get_mp3_from_youtube start subprocess begin")
-    with subprocess.Popen(cmds, stdout=subprocess.PIPE) as proc:
-        result = proc.stdout.read()
-
-    print("get_mp3_from_youtube start subprocess end")
-    print("result = ", result)       
-
-    result = result.decode("utf-8")
-    str_result = result.split("\n")
-    str_search = "[ffmpeg] Destination:"
-    file_mp3 = ""
-    for s in str_result:
-        if str_search in s:
-            file_mp3 = s[len(str_search):].strip()
-            break
     try:
-        print("filename = ", file_mp3)
-        event.respond(f"Попытка отправить вам файл: {file_mp3}")
-        # bot.send_audio(chat_id=update.message.chat_id, audio = open(file_mp3, 'rb'), timeout=1000)
-    except FileNotFoundError:
-        event.respond(f"Вывод результат команды {cmds}:\n {result}")
-        event.respond("Внутреняя ошибка: или урл не доступен, или конвертация невозможна.\nПопробуйте позже или другую ссылку.")
+        chat = await event.get_input_chat()
+        sender = await event.get_sender()
+        buttons = await event.get_buttons()
+        print(sender.id)
+        user_folder = str(sender.id)
+        print(event.raw_text)
+        url_youtube = event.raw_text
+        cmds = ['youtube-dl','--extract-audio','--audio-format', 'mp3', '--output', r"mp3/"+user_folder+r"/%(title)s.%(ext)s" , url_youtube]
+        print(cmds)
+        await event.respond("Начало конвертации ютуб клипа в mp3...")
+        # TODO: сделать конвертирование в mp3
+        print("get_mp3_from_youtube start subprocess begin")
+        result = ""
+        
+        with subprocess.Popen(cmds, stdout=subprocess.PIPE) as proc:
+            result = proc.stdout.read()
+        
+        print("get_mp3_from_youtube start subprocess end")
+        print("result = ", result)       
+
+        result = result.decode("utf-8")
+        str_result = result.split("\n")
+        str_search = "[ffmpeg] Destination:"
+        file_mp3 = ""
+        for s in str_result:
+            if str_search in s:
+                file_mp3 = s[len(str_search):].strip()
+                break
+        try:
+            print("filename = ", file_mp3)
+            event.respond(f"Попытка отправить вам файл: {file_mp3}")
+            # bot.send_audio(chat_id=update.message.chat_id, audio = open(file_mp3, 'rb'), timeout=1000)
+        except FileNotFoundError:
+            event.respond(f"Вывод результат команды {cmds}:\n {result}")
+            event.respond("Внутреняя ошибка: или урл не доступен, или конвертация невозможна.\nПопробуйте позже или другую ссылку.")
+        except Exception as err:
+            print("------!!!! Внутреняя ошибка: ", err)
+            event.respond(f"------!!!! Внутреняя ошибка: {err}")
+        # END сделать конвертирование в mp3
     except Exception as err:
-        print("------!!!! Внутреняя ошибка: ", err)
-        event.respond(f"------!!!! Внутреняя ошибка: {err}")
-    # END сделать конвертирование в mp3
+        print(err)
 
     await event.respond("Конец конвертации!")
 
