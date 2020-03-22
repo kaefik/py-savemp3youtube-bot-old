@@ -5,6 +5,7 @@
 """
 
 import requests
+import asyncio
 
 
 # преобразование строки вида "SAMSUNG a50 64\\xd0\\xb3\\xd0\\xb1" в строку c кодировкой encoding
@@ -34,3 +35,23 @@ def savefile_from_url(urls=None, filename="test.html"):
         return True
 
     return False
+
+
+# запуск команды cmd asyncio
+async def run_cmd(cmd):
+    proc = await asyncio.create_subprocess_shell(
+        cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE)
+    
+    stdout, stderr = await proc.communicate()
+
+    print(f'[{cmd!r} exited with {proc.returncode}]')    
+    if stdout:
+        print(f'[stdout]\n{stdout.decode()}')          
+    if stderr:
+        print(f'[stderr]\n{stderr.decode()}')
+
+    return stdout, stderr, proc.returncode
+
+    
