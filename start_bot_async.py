@@ -45,8 +45,11 @@ proxy_server = os.getenv("TLG_PROXY_SERVER")
 proxy_port = int(os.getenv("TLG_PROXY_PORT"))
 proxy_key = os.getenv("TLG_PROXY_KEY")
 # клиент с правами администратора
-admin_client = int(os.getenv("TLG_ADMIN_ID_CLIENT"))
-clients = [] # обычные пользователи TODO: сделать загрузку пользователей из файла конфигурации
+admin_client = []
+admin_client.append(int(os.getenv("TLG_ADMIN_ID_CLIENT")))
+
+clients = [] # обычные пользователи TODO: сделать загрузку пользователей 
+# из файла конфигурации
 clients.append(admin_client)
 
 if proxy_server is None or proxy_port is None or proxy_key is None:
@@ -237,6 +240,18 @@ async def get_mp3_from_youtube(event):
         await event.respond(f"!!!! Внутреняя ошибка: {err}")
     # END сделать конвертирование в mp3
     await event.respond("Конец конвертации!")
+
+@bot.on(events.NewMessage(pattern='/admin'))
+async def admin(event):
+    sender = await event.get_sender() 
+    # проверка на право доступа к боту
+    sender_id = sender.id
+    if not is_allow_user(sender_id, admin_client):
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
+            f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
+        return
+    # END проверка на право доступа к боту
+    await event.respond("Вы вошли в режим администратора")
 
 def main():    
     bot.run_until_disconnected()
