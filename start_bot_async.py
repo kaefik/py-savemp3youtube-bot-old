@@ -7,7 +7,7 @@ import os
 # pip3 install python-dotenv
 from dotenv import load_dotenv
 # pip3 install Telethon
-from telethon import TelegramClient, events, connection, sync
+from telethon import TelegramClient, events, connection, sync, Button
 import asyncio
 import subprocess
 from pprint import pprint
@@ -50,7 +50,7 @@ admin_client.append(int(os.getenv("TLG_ADMIN_ID_CLIENT")))
 
 clients = [] # обычные пользователи TODO: сделать загрузку пользователей 
 # из файла конфигурации
-clients.append(admin_client)
+clients = admin_client
 
 if proxy_server is None or proxy_port is None or proxy_key is None:
     print("Нет настроек MTProto прокси сервера телеграмма.\n"\
@@ -80,20 +80,25 @@ def is_allow_user(iduser, allow_users):
     return False        
 #----- END Вспомогательные функции
 
-
+@bot.on(events.CallbackQuery)
+async def handler(event):
+    await event.answer('You clicked {}!'.format(event.data))
 
 @bot.on(events.NewMessage(pattern='/start'))
 async def start(event):
     sender = await event.get_sender() 
     # проверка на право доступа к боту
-    sender_id = sender.id       
+    sender_id = sender.id
     if not is_allow_user(sender_id, clients):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
     await event.respond(f"Привет, {sender.first_name}! Я рад видеть тебя!\n"\
-        "Пришли мне ссылку на клип ютуба, обратно получите его аудио дорожку.")
+        "Пришли мне ссылку на клип ютуба, обратно получите его аудио дорожку.",
+        buttons=[
+            [Button.text('/help'), Button.text('/admin')]]
+        )        
     raise events.StopPropagation
 
 @bot.on(events.NewMessage(pattern='/about'))
