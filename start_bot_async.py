@@ -69,6 +69,19 @@ help_text = ""
 with open("help.txt", "r") as f:
     help_text = f.read()
 
+# флаг режима администратора
+flag_admin = False
+
+button_main = [
+                 [Button.text("/help"), Button.text("/admin")]
+              ]
+            
+button_admin = [
+                [Button.text("/AddUser"), 
+                Button.text("/DelUser"), 
+                Button.text("/ExitAdmin")]
+                ]
+
 # ---- END Начальные данные ----
 
 #----- Вспомогательные функции
@@ -96,8 +109,7 @@ async def start(event):
     # END проверка на право доступа к боту
     await event.respond(f"Привет, {sender.first_name}! Я рад видеть тебя!\n"\
         "Пришли мне ссылку на клип ютуба, обратно получите его аудио дорожку.",
-        buttons=[
-            [Button.text('/help'), Button.text('/admin')]]
+        buttons=[[Button.text("/help"), Button.text("/admin")]]
         )        
     raise events.StopPropagation
 
@@ -256,7 +268,59 @@ async def admin(event):
             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
-    await event.respond("Вы вошли в режим администратора")
+    flag_admin = True
+    await event.respond("Вы вошли в режим администратора",
+        buttons=button_admin
+    )
+
+@bot.on(events.NewMessage(pattern='/AddUser'))
+async def adduser_admin(event):
+    """
+    if not flag_admin:
+        await event.respond("Войдите в режим администратора.")
+        return
+    """
+    sender = await event.get_sender() 
+    # проверка на право доступа к боту
+    sender_id = sender.id
+    if not is_allow_user(sender_id, admin_client):
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
+            f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
+        return
+    # END проверка на право доступа к боту
+    await event.respond("Выполняется команда /AddUSer")
+
+@bot.on(events.NewMessage(pattern='/DelUser'))
+async def deluser_admin(event):
+    """
+    if not flag_admin:
+        await event.respond("Войдите в режим администратора.")
+        return
+    """
+    sender = await event.get_sender() 
+    # проверка на право доступа к боту
+    sender_id = sender.id
+    if not is_allow_user(sender_id, admin_client):
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
+            f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
+        return
+    # END проверка на право доступа к боту
+    await event.respond("Выполняется команда /DelUSer")
+
+@bot.on(events.NewMessage(pattern='/ExitAdmin'))
+async def exitadmin_admin(event):    
+    sender = await event.get_sender() 
+    # проверка на право доступа к боту
+    sender_id = sender.id
+    if not is_allow_user(sender_id, admin_client):
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
+            f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
+        return
+    # END проверка на право доступа к боту
+    flag_admin = False
+    await event.respond(f"Вы вышли из режима администратора.",
+        buttons=button_main
+    )     
 
 def main():    
     bot.run_until_disconnected()
