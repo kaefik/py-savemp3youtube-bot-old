@@ -101,20 +101,44 @@ def write_user_db(id, name_db):
     with open(name_db, "a") as f:
         f.write(f"{id}\n")
     return True
-        
+
+# запись списка пользователей в файл
+def write_all_user_db(users, name_db):
+    print("users ", users)
+    if users==[]:
+        user_str=""        
+    else:
+        user_str = [str(x) for x in users]
+        user_str = "\n".join(user_str)
+    with open(name_db, "w") as f:
+        f.write(f"{user_str}\n")
+    return True
 
 # возвращает список пользователей которые имеют доступ к боту
-def read_user_db(name_db):
-    result = None
+def read_user_db(name_db):    
+    if not os.path.exists(name_db):
+        return []    
     with open(name_db, "r") as f:
         result = f.read()
     result = result.split()
     result = [int(x) for x in result]
     return result
 
+# получение всех пользователей бота (обычные пользователи + администраторы бота)
 def get_all_user():
     res = admin_client + read_user_db(db_user_bot)
     return res
+
+# удаление пользователя id из БД пользователей
+def del_user_db(id, name_db):    
+    if not os.path.exists(name_db):
+        return False    
+    all_user = read_user_db(name_db)
+    set_all_user = set(all_user)
+    set_all_user.discard(id)
+    all_user = list(set_all_user)
+    write_all_user_db(all_user, name_db)
+    return True    
 
 #----- END Вспомогательные функции
 
@@ -331,9 +355,6 @@ async def adduser_admin(event):
         write_user_db(id_new_user, db_user_bot)
         await conv.send_message(f"Добавили нового пользователя с ID: {id_new_user}")
 
-        
-
-
 @bot.on(events.NewMessage(pattern='/DelUser'))
 async def deluser_admin(event):
     """
@@ -350,6 +371,22 @@ async def deluser_admin(event):
         return
     # END проверка на право доступа к боту
     await event.respond("Выполняется команда /DelUSer")
+    # диалог с запросом информации нужной для работы команды /DelUser
+    chat_id = event.chat_id
+    async with bot.conversation(chat_id) as conv:
+        #response = conv.wait_event(events.NewMessage(incoming=True))
+        await conv.send_message("Привет! Введите номер id пользователя "\
+            "который нужно запретить доступ к боту")
+        id_del_user = await conv.get_response()
+        id_del_user = id_del_user.message        
+        while not any(x.isdigit() for x in id_del_user):
+            await conv.send_message("ID пользователя - это число. "\
+                "Попробуйте еще раз.")
+            id_del_user = await conv.get_response()
+            id_del_user = id_del_user.message        
+        del_user_db(int(id_del_user), db_user_bot)
+        await conv.send_message(f"Пользователю с ID: {id_del_user} "\
+            "доступ к боту запрещен.")
 
 @bot.on(events.NewMessage(pattern='/InfoUser'))
 async def infouser_admin(event):
