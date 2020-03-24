@@ -79,18 +79,43 @@ button_main = [
 button_admin = [
                 [Button.text("/AddUser"), 
                 Button.text("/DelUser"), 
+                Button.text("/InfoUser"),
                 Button.text("/ExitAdmin")]
                 ]
+
+db_user_bot = "db_user_allow.txt"
 
 # ---- END Начальные данные ----
 
 #----- Вспомогательные функции
 # проверка на разрешенного пользователя
-def is_allow_user(iduser, allow_users):
+def is_allow_user(iduser, allow_users):    
     for user in allow_users:                
         if user==iduser:
             return True    
     return False        
+
+# добавляем пользователя в БД пользователей которые имеют доступ к боту
+# возвращает True 
+def write_user_db(id, name_db):
+    with open(name_db, "a") as f:
+        f.write(f"{id}\n")
+    return True
+        
+
+# возвращает список пользователей которые имеют доступ к боту
+def read_user_db(name_db):
+    result = None
+    with open(name_db, "r") as f:
+        result = f.read()
+    result = result.split()
+    result = [int(x) for x in result]
+    return result
+
+def get_all_user():
+    res = admin_client + read_user_db(db_user_bot)
+    return res
+
 #----- END Вспомогательные функции
 
 @bot.on(events.CallbackQuery)
@@ -102,7 +127,7 @@ async def start(event):
     sender = await event.get_sender() 
     # проверка на право доступа к боту
     sender_id = sender.id
-    if not is_allow_user(sender_id, clients):
+    if not is_allow_user(sender_id, get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -118,7 +143,7 @@ async def about(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id       
-    if not is_allow_user(sender_id, clients):
+    if not is_allow_user(sender_id, get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -130,7 +155,7 @@ async def clear_all_mp3(event):
     sender = await event.get_sender()       
     # проверка на право доступа к боту
     sender_id = sender.id       
-    if not is_allow_user(sender_id, clients):
+    if not is_allow_user(sender_id, get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -180,7 +205,7 @@ async def help(event):
     sender = await event.get_sender() 
     # проверка на право доступа к боту
     sender_id = sender.id
-    if not is_allow_user(sender_id, clients):
+    if not is_allow_user(sender_id, get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -195,7 +220,7 @@ async def get_mp3_from_youtube(event):
     sender = await event.get_sender() 
     # проверка на право доступа к боту
     sender_id = sender.id       
-    if not is_allow_user(sender_id, clients):
+    if not is_allow_user(sender_id, get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"\
             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -289,6 +314,25 @@ async def adduser_admin(event):
         return
     # END проверка на право доступа к боту
     await event.respond("Выполняется команда /AddUSer")
+    # диалог с запросом информации нужной для работы команды /AddUser
+    chat_id = event.chat_id
+    async with bot.conversation(chat_id) as conv:
+        #response = conv.wait_event(events.NewMessage(incoming=True))
+        await conv.send_message("Привет! Введите номер id пользователя"\
+            "который нужно добавить для доступа к боту:")
+        id_new_user = await conv.get_response()
+        id_new_user = id_new_user.message
+        # print("id_new_user ", id_new_user)
+        while not any(x.isdigit() for x in id_new_user):
+            await conv.send_message("ID нового пользователя - это число. Попробуйте еще раз.")
+            id_new_user = await conv.get_response()
+            id_new_user = id_new_user.message
+        # print("id_new_user ", id_new_user)
+        write_user_db(id_new_user, db_user_bot)
+        await conv.send_message(f"Добавили нового пользователя с ID: {id_new_user}")
+
+        
+
 
 @bot.on(events.NewMessage(pattern='/DelUser'))
 async def deluser_admin(event):
@@ -306,6 +350,13 @@ async def deluser_admin(event):
         return
     # END проверка на право доступа к боту
     await event.respond("Выполняется команда /DelUSer")
+
+@bot.on(events.NewMessage(pattern='/InfoUser'))
+async def infouser_admin(event):
+    ids = read_user_db(db_user_bot)    
+    ids = [str(x) for x in ids]
+    strs = ", ".join(ids)
+    await event.respond(f"Пользователи которые имеют доступ:\n{strs}")
 
 @bot.on(events.NewMessage(pattern='/ExitAdmin'))
 async def exitadmin_admin(event):    
@@ -325,5 +376,5 @@ async def exitadmin_admin(event):
 def main():    
     bot.run_until_disconnected()
 
-if __name__ == '__main__':
+if __name__ == '__main__':   
     main()
