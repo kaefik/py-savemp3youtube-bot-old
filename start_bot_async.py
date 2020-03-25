@@ -12,6 +12,7 @@ import asyncio
 import subprocess
 from pprint import pprint
 import logging
+import re
 
 from i_utils import run_cmd
 
@@ -84,7 +85,7 @@ button_admin = [
                 ]
 
 db_user_bot = "db_user_allow.txt"
-
+rexp_http_url = r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)"
 # ---- END Начальные данные ----
 
 #----- Вспомогательные функции
@@ -238,9 +239,10 @@ async def help(event):
 
 # получение урл
 @bot.on(events.NewMessage(
-    pattern=r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)")
+    pattern=r".*\n*"+rexp_http_url)
     )
 async def get_mp3_from_youtube(event):
+    print("get_mp3_from_youtube start subprocess begin")
     sender = await event.get_sender() 
     # проверка на право доступа к боту
     sender_id = sender.id       
@@ -256,7 +258,10 @@ async def get_mp3_from_youtube(event):
     # print(sender.id)
     user_folder = str(sender.id)
     # print(event.raw_text)
-    url_youtube = event.raw_text        
+    # выделение урл из общей массы сообщения
+    match = re.search(rexp_http_url, event.raw_text)
+    url_youtube = match.group()      
+    print(url_youtube)
     await event.respond("Начало конвертации ютуб клипа в mp3...")
     # TODO: сделать конвертирование в mp3
     # print("get_mp3_from_youtube start subprocess begin")        
