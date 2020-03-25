@@ -220,7 +220,7 @@ async def clear_all_mp3(event):
 
     result = result.decode("utf8")
     # print("result = ", result)
-    await event.respond(result)
+    # await event.respond(result)
 
     await event.respond("Очистка завершена.")
 
