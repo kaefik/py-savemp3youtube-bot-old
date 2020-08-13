@@ -7,10 +7,8 @@ import os
 # pip3 install python-dotenv
 from dotenv import load_dotenv
 # pip3 install Telethon
-from telethon import TelegramClient, events, connection, sync, Button
+from telethon import TelegramClient, events, connection, Button
 import asyncio
-import subprocess
-from pprint import pprint
 import logging
 import re
 
@@ -45,8 +43,7 @@ proxy_server = os.getenv("TLG_PROXY_SERVER")
 proxy_port = os.getenv("TLG_PROXY_PORT")
 proxy_key = os.getenv("TLG_PROXY_KEY")
 # клиент с правами администратора
-admin_client = []
-admin_client.append(int(os.getenv("TLG_ADMIN_ID_CLIENT")))
+admin_client = [int(os.getenv("TLG_ADMIN_ID_CLIENT"))]
 
 clients = []  # обычные пользователи TODO: сделать загрузку пользователей
 # из файла конфигурации
@@ -391,7 +388,7 @@ async def adduser_admin(event):
         id_new_user = await conv.get_response()
         id_new_user = id_new_user.message
         # print("id_new_user ", id_new_user)
-        while not any(x.isdigit() for x in id_new_user):
+        while not all(x.isdigit() for x in id_new_user):
             await conv.send_message("ID нового пользователя - это число. Попробуйте еще раз.")
             id_new_user = await conv.get_response()
             id_new_user = id_new_user.message
