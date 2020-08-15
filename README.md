@@ -49,8 +49,6 @@
      apt install mp3splt
      ```
 
-     
-
 ### Конфигурационные файлы проекта:
 
 * **.env** 
@@ -73,6 +71,34 @@
 ```bash
 python start_bot_async.py
 ```
+
+## Запуск docker контейнера с программой
+
+1. скопировать всю программу в папку на компьютере например в папку *tlg-youtube2audio/app*:
+
+2. сохранить файл *Dockerfile* в папке *tlg-youtube2audio*:
+
+   ENV TZ=Europe/Moscow
+   RUN apt-get update && apt-get install -y python3 && apt-get install -y python3-pip 
+   RUN DEBIAN_FRONTEND=noninteractive apt-get install -y youtube-dl && apt-get install -y mp3splt
+   RUN pip3 install python-dotenv && pip3 install Telethon && pip3 install requests
+   WORKDIR /home/app
+   #VOLUME /home/app
+   COPY app /home/app
+   CMD ["python3", "start_bot_async.py"]
+
+3. в папку *tlg-youtube2audio/cfg* файлы конфигурации проекта:
+   1. *.env*
+   2. *db_user_allow.txt*
+
+4. Создание образа контейнера
+
+`docker build --tag=tlgyoutube2audio .`
+
+5. Запуск docker контейнера (после завершения работы контейнера)
+
+ `docker run -it --rm  -v "/полный_путь_до_проекта/tlg-youtube2audio/cfg/.env:/home/app/.env" -v "/полный_путь_до_проекта/tlg-youtube2audio/cfg/d`
+`b_user_allow.txt:/home/app/db_user_allow.txt" tlgyoutube2audio`
 
 ### Команды которые используются ботом для основного функционала:
 
