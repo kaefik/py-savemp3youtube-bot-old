@@ -38,7 +38,7 @@
      Для установки на убунту: 
 
      ```bash
-     apt install youtube-dl
+     sudo -H pip3 install --upgrade youtube-dl
      ```
 
   2. [mp3splt](http://mp3splt.sourceforge.net/mp3splt_page/home.php) - для разбивания аудофайлов различных форматов без декодинга.
@@ -70,6 +70,31 @@
 
 ```bash
 python start_bot_async.py
+```
+
+
+### Добавление в автозапуск программы при загрузке сервера Ubuntu
+
+в папке /etc/systemd/system/ создадим файл start-youtube-audio.service
+
+Содержимое файла:
+```bash
+[Unit]
+Description=Youtube video to audio
+After=network.target
+
+[Service]
+ExecStart=путь до скрипта запуска программы
+
+[Install]
+WantedBy=default.target
+```
+
+выполним команды
+```bash
+systemctl daemon-reload
+systemctl enable start-youtube-audio.service
+systemctl start start-youtube-audio.service
 ```
 
 ## Запуск docker контейнера с программой
