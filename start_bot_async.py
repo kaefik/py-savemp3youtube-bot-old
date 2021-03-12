@@ -333,7 +333,7 @@ async def get_mp3_from_youtube(event):
     try:
         await event.respond(f"Результат конвертации:")
         for el in files_mp3:
-            await event.respond(file={el})
+            await event.respond(file=el)
 
     except FileNotFoundError:
         await event.respond(f"Вывод результат команды {cmds}:\n {result}")
