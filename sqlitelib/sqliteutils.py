@@ -110,24 +110,43 @@ class SettingUser:
                 force  - если True, то даже если БД существует, оно перезапишет его
         """
         self.db = namedb  # имя БД настроек бота
-        # проверим есть ли вообще БД
-        self.__createnewdb(force)
+        self.connect = self.__createnewdb(force)  # конект в БД
+
+    def open(self):
+        """
+            открыть файл настроек
+        """
+        try:
+            conn = sqlite3.connect(self.db)
+        except sqlite3.Error as error:
+            print("Ошибка при подключении к sqlite", error)
+            return False
+        finally:
+            return True
+
+    def close(self):
+        """
+            закрытие коннекта к БД
+        """
+        if not (self.connect is None):
+            self.connect.close()
 
     def __createnewdb(self, force=False):
         """
             создание БД настроек бота
-            возращает True, если операция создания успешно.
+            возвращает True, если операция создания успешно.
         """
         try:
             if os.path.exists(self.db):
                 if force:
                     # print('Файл существует')
                     os.remove(self.db)
-            else:
-                return True
+                else:
+                    connect = sqlite3.connect(self.db)
+                    return connect
 
-            conn = sqlite3.connect(self.db)
-            cursor = conn.cursor()
+            connect = sqlite3.connect(self.db)
+            cursor = connect.cursor()
 
             """
                 Создание таблицы USER - информация о пользователях
@@ -154,18 +173,29 @@ class SettingUser:
         except sqlite3.Error as error:
             print("Ошибка при подключении к sqlite", error)
             return False
-        finally:
-            if (conn):
-                conn.close()
-                # print("Соединение с SQLite закрыто")
-        return True
+
+        return connect
 
     def add_user(self, new_user):
         """
             добавление нового пользователя new_user (тип User)
 
         """
-        pass
+        cursor = self.connect.cursor()
+        sqlite_insert_query_user = f"""INSERT INTO user
+                                  (id, name, active)
+                                  VALUES
+                                  ({new_user.id}, '{new_user.name}', {new_user.active});"""
+        cursor.execute(sqlite_insert_query_user)
+
+        sqlite_insert_query_settings = f"""INSERT INTO settings
+                                          (id, role, typeresult, qualityresult)
+                                          VALUES
+                                          ({new_user.id}, '{new_user.role}', '{new_user.typeresult}', '{new_user.qualityresult}');"""
+        cursor.execute(sqlite_insert_query_settings)
+        self.connect.commit()
+        cursor.close()
+        return True
 
     def del_user(self, id):
         """
@@ -203,6 +233,9 @@ if __name__ == '__main__':
     print(new_user)
     new_user.id = 458999
     new_user.name = 'TestUser'
-    new_user.active = False
+    new_user.active = True
     print(new_user)
-    # sUser = SettingUser('settings_test.db', False)
+
+    usr = SettingUser()
+    usr.add_user(new_user)
+    usr.close()
