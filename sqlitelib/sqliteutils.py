@@ -24,6 +24,12 @@ class TypeResult(Enum):
     sound = 2
 
 
+class QualityResult(Enum):
+    low = 1
+    medium = 2
+    high = 3
+
+
 # данные конкретного пользователя
 class User:
 
@@ -33,7 +39,7 @@ class User:
         self._active = False
         self._role = Role.user
         self._typeresult = TypeResult.sound
-        self._qualityresult = None
+        self._qualityresult = QualityResult.medium
 
     @property
     def id(self):
@@ -82,10 +88,12 @@ class User:
 
     @property
     def qualityresult(self):
+        # проверить соответствует ли new_type классу QualityResult
         return self._qualityresult
 
     @qualityresult.setter
     def qualityresult(self, quality):
+        # проверить соответствует ли new_type классу QualityResult
         self._qualityresult = quality
 
     def __str__(self):
