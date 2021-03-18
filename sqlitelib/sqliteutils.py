@@ -160,6 +160,43 @@ class SettingUser:
                 # print("Соединение с SQLite закрыто")
         return True
 
+    def add_user(self, new_user):
+        """
+            добавление нового пользователя new_user (тип User)
+
+        """
+        pass
+
+    def del_user(self, id):
+        """
+            удаление пользователя с id
+        """
+        pass
+
+    def update_user(self, new_user):
+        """
+            обновить данные пользователя  User, если такого пользователя нет, то добавляется новый пользователь
+        """
+        pass
+
+    def get_user(self, id):
+        """
+            получить информацию о пользователе по id
+        """
+        pass
+
+    def get_all_user(self):
+        """
+            получить всех пользователей
+        """
+        pass
+
+    def get_user_type(self, type_user):
+        """
+            получение всех пользователей с типом type_user (тип Role)
+        """
+        pass
+
 
 if __name__ == '__main__':
     new_user = User()
