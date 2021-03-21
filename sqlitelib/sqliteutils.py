@@ -356,6 +356,14 @@ class SettingUser:
         """
         pass
 
+    def fix_settings(self):
+        """
+            починка БД настроек пользователя,
+            например каким-то образом информация о пользователе есть только в одной таблице
+             User или Settings
+        """
+        pass
+
 
 if __name__ == '__main__':
     # user1 = User()
@@ -377,7 +385,7 @@ if __name__ == '__main__':
     #
     # print(ord(user2.typeresult))
 
-    for name, member in TypeResult.__members__.items():
-        print(name, member)
+    # for name, member in TypeResult.__members__.items():
+    #     print(name, member)
 
     pass
