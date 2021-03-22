@@ -1,4 +1,6 @@
 import unittest
+import os
+import shutil
 
 from sqlitelib.sqliteutils import User, SettingUser, Role, TypeResult, QualityResult
 
@@ -10,14 +12,20 @@ class TestSettingUser(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        pass
+        cls.current_dir_test = os.path.dirname(os.path.abspath(__file__))
+        cls.output_dir = cls.current_dir_test + '/db/'
+        try:
+            os.mkdir(cls.output_dir)
+        except FileExistsError:
+            shutil.rmtree(cls.output_dir, ignore_errors=False, onerror=None)
+            os.mkdir(cls.output_dir)
 
     @classmethod
     def tearDownClass(cls):
         pass
 
     def setUp(self) -> None:
-        self.usr = SettingUser(force=True)  # перед каждым тестом создаем заново
+        self.usr = SettingUser(namedb=self.output_dir + 'settings.db', force=True)  # перед каждым тестом создаем заново
 
         self.user1 = User()
         self.user1.name = 'User1'
