@@ -304,13 +304,35 @@ class SettingUser:
         cursor.execute(sqlite_delete_setting)
 
         self.connect.commit()
+        cursor.close()
         return True
 
     def update_user(self, new_user):
         """
             обновить данные пользователя  User, если такого пользователя нет, то добавляется новый пользователь
         """
-        pass
+        # """Update sqlitedb_developers set salary = 10000 where id = 4"""
+
+        if not self.is_exist_user(new_user.id):
+            self.add_user(new_user)
+
+        cursor = self.connect.cursor()
+
+
+
+        sqlite_update_user = f"""UPDATE user SET name ='{new_user.name}',  
+                                active = {new_user.active}
+                                WHERE id={new_user.id}"""
+        cursor.execute(sqlite_update_user)
+
+        sqlite_update_settings = f"""UPDATE settings SET role = '{new_user.role}',  
+                                typeresult = '{new_user.typeresult}', qualityresult = '{new_user.qualityresult}'
+                                WHERE id={new_user.id}"""
+        cursor.execute(sqlite_update_settings)
+
+        self.connect.commit()
+        cursor.close()
+        return True
 
     def get_user(self, idd):
         """
