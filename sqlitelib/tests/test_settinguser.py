@@ -89,6 +89,18 @@ class TestSettingUser(unittest.TestCase):
         self.assertEqual(self.user1, result[0])
         self.assertEqual(self.user2, result[1])
 
+    def test_add_user_double(self):
+        """
+            проверка на попытке добавить пользователя который существует
+        """
+        self.usr.add_user(self.user1)
+        self.usr.add_user(self.user2)
+        self.usr.add_user(self.user1)
+        result = self.usr.get_all_user()
+        self.assertEqual(2, len(result))
+        self.assertEqual(self.user1.id, result[0].id)
+        self.assertEqual(self.user2.id, result[1].id)
+
 
 if __name__ == '__main__':
     unittest.main()
