@@ -310,6 +310,7 @@ class SettingUser:
     def update_user(self, new_user):
         """
             обновить данные пользователя  User, если такого пользователя нет, то добавляется новый пользователь
+            тест: есть
         """
         # """Update sqlitedb_developers set salary = 10000 where id = 4"""
 
