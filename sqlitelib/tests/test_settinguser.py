@@ -43,6 +43,14 @@ class TestSettingUser(unittest.TestCase):
         self.user2.typeresult = TypeResult.video
         self.user2.qualityresult = QualityResult.low
 
+        self.user3 = User()
+        self.user3.name = 'User3'
+        self.user3.id = 7854125
+        self.user3.active = True
+        self.user3.role = Role.user
+        self.user3.typeresult = TypeResult.sound
+        self.user3.qualityresult = QualityResult.high
+
     def tearDown(self) -> None:
         self.usr.close()
 
@@ -100,6 +108,26 @@ class TestSettingUser(unittest.TestCase):
         self.assertEqual(2, len(result))
         self.assertEqual(self.user1.id, result[0].id)
         self.assertEqual(self.user2.id, result[1].id)
+
+    def test_get_user_type_exist(self):
+        """
+            проверка на получение пользователей указанного типа, если данный тип есть в БД
+        """
+        self.usr.add_user(self.user3)
+        self.usr.add_user(self.user1)
+        self.usr.add_user(self.user2)
+
+        result = self.usr.get_user_type(Role.user)
+        self.assertEqual(2, len(result))
+
+    def test_get_user_type_no_exist(self):
+        """
+            проверка на получение пользователей указанного типа, если данного типа нет в БД
+        """
+        self.usr.add_user(self.user3)
+        self.usr.add_user(self.user2)
+        result = self.usr.get_user_type(Role.admin)
+        self.assertEqual(0, len(result))
 
 
 if __name__ == '__main__':

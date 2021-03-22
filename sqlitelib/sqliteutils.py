@@ -254,11 +254,17 @@ class SettingUser:
     def add_user(self, new_user):
         """
             добавление нового пользователя new_user (тип User)
-
+            возвращает: True - операция добавления пользователя удалась, False - ошибка при добавлении или пользователь существует
+            тест: есть
         """
         cursor = self.connect.cursor()
 
         # TODO: сделать проверку но то что есть запись в таблицах или нет, чтобы не было дублей
+
+        id_exist = self.is_exist_user(new_user.id)
+
+        if id_exist:  # проверка на то что пользователь с данным id есть пользователь
+            return False
 
         sqlite_insert_query_user = f"""INSERT INTO user
                                   (id, name, active)
@@ -278,6 +284,7 @@ class SettingUser:
     def is_exist_user(self, idd):
         """
             проверить есть ли БД пользователь с id
+            тест: есть
         """
         result = self.get_user(idd=idd)
         if result is not None:
@@ -300,6 +307,7 @@ class SettingUser:
     def get_user(self, idd):
         """
             получить информацию о пользователе по id
+            тест: есть
         """
         result = None
 
@@ -326,6 +334,7 @@ class SettingUser:
     def get_all_user(self):
         """
             получить всех пользователей
+            тест: есть
         """
         cursor = self.connect.cursor()
         sqlite_query_user = """SELECT * from user"""
@@ -353,8 +362,32 @@ class SettingUser:
     def get_user_type(self, type_user):
         """
             получение всех пользователей с типом type_user (тип Role)
+            возвращает: массив пользователей, если пользователей нет, то пустой массив
         """
-        pass
+        result = []
+
+        cursor = self.connect.cursor()
+        sqlite_query_settings = f"""SELECT * FROM settings WHERE role='{type_user}'"""
+        cursor.execute(sqlite_query_settings)
+        result_setting = cursor.fetchall()
+
+        if len(result_setting) == 0:
+            return result
+
+        for row in result_setting:
+            idd = row[0]
+
+            sqlite_query_user = f"""SELECT * FROM user WHERE id={idd}"""
+            cursor.execute(sqlite_query_user)
+            result_user = cursor.fetchone()
+
+            if len(result_user) == 0:
+                continue
+
+            result.append(User(id=result_user[0], name=result_user[1], active=result_user[2],
+                               role=row[1], typeresult=row[2], qualityresult=row[3]))
+
+        return result
 
     def fix_settings(self):
         """
