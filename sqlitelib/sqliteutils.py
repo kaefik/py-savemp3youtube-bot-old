@@ -259,8 +259,6 @@ class SettingUser:
         """
         cursor = self.connect.cursor()
 
-        # TODO: сделать проверку но то что есть запись в таблицах или нет, чтобы не было дублей
-
         id_exist = self.is_exist_user(new_user.id)
 
         if id_exist:  # проверка на то что пользователь с данным id есть пользователь
@@ -295,8 +293,18 @@ class SettingUser:
     def del_user(self, idd):
         """
             удаление пользователя с id
+            тест: есть
         """
-        pass
+        cursor = self.connect.cursor()
+
+        sqlite_delete_user = f"""DELETE from user where id = {idd}"""
+        cursor.execute(sqlite_delete_user)
+
+        sqlite_delete_setting = f"""DELETE from settings where id = {idd}"""
+        cursor.execute(sqlite_delete_setting)
+
+        self.connect.commit()
+        return True
 
     def update_user(self, new_user):
         """

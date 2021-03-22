@@ -129,6 +129,34 @@ class TestSettingUser(unittest.TestCase):
         result = self.usr.get_user_type(Role.admin)
         self.assertEqual(0, len(result))
 
+    def test_del_user_exist(self):
+        """
+            удаление пользователя по id который есть в БД
+        """
+        self.usr.add_user(self.user3)
+        self.usr.add_user(self.user1)
+        self.usr.add_user(self.user2)
+
+        idd = self.user1.id
+        self.usr.del_user(idd)
+        result = self.usr.is_exist_user(idd)
+
+        self.assertEqual(False, result)
+
+    def test_del_user_no_exist(self):
+        """
+            удаление пользователя по id которого нет в БД
+        """
+        self.usr.add_user(self.user3)
+        self.usr.add_user(self.user1)
+        self.usr.add_user(self.user2)
+
+        idd = 555555
+        self.usr.del_user(idd)
+        result = self.usr.get_all_user()
+
+        self.assertEqual(3, len(result))
+
 
 if __name__ == '__main__':
     unittest.main()
