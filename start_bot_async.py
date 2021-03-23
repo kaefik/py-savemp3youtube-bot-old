@@ -378,8 +378,18 @@ async def adduser_admin(event):
             id_new_user = await conv.get_response()
             id_new_user = id_new_user.message
         # print("id_new_user ", id_new_user)
+
+        # получаем информацию о пользователе
+        try:
+            new_nameuser = await event.client.get_entity(int(id_new_user))
+            new_nameuser = new_nameuser.username
+        except ValueError as err:
+            print('Ошибка получения информации о пользователе по id: ', err)
+            new_nameuser = ''
+
+        print('Имя нового пользователя', new_nameuser)
         add_new_user(id_new_user, settings)
-        await conv.send_message(f"Добавили нового пользователя с ID: {id_new_user}")
+        await conv.send_message(f"Добавили нового пользователя с ID: {id_new_user} с именем {new_nameuser}")
 
 
 @bot.on(events.NewMessage(pattern='/DelUser'))
