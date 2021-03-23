@@ -13,6 +13,7 @@ import logging
 import re
 
 from i_utils import run_cmd
+from sqlitelib.sqliteutils import User, SettingUser, Role, TypeResult, QualityResult
 
 # ---- Начальные данные ----
 path_mp3 = "mp3"
@@ -43,11 +44,27 @@ proxy_server = os.getenv("TLG_PROXY_SERVER")
 proxy_port = os.getenv("TLG_PROXY_PORT")
 proxy_key = os.getenv("TLG_PROXY_KEY")
 # клиент с правами администратора
-admin_client = [int(os.getenv("TLG_ADMIN_ID_CLIENT"))]
+admin_client = int(os.getenv("TLG_ADMIN_ID_CLIENT"))
 
-clients = []  # обычные пользователи TODO: сделать загрузку пользователей
-# из файла конфигурации
-clients = admin_client
+print(admin_client)
+
+# настройки бота
+name_file_settings = 'settings.db'
+if not os.path.exists(name_file_settings):
+    print('нет файла настроек')
+    name_admin = 'User1'  # TODO: сделать получение имени пользователя
+    settings = SettingUser(namedb=name_file_settings)
+    admin_User = User(id=admin_client, role=Role.admin)
+    settings.add_user(admin_User)
+else:
+    print('есть файл настроек')
+    settings = SettingUser(namedb=name_file_settings)
+
+# получение всех пользователей из БД
+# clients = settings.get_all_user()  # список всех клиентов
+admin_client = settings.get_user_type(Role.admin)  # список администраторов бота
+# END настройки бота
+
 
 if proxy_server is None or proxy_port is None or proxy_key is None:
     print("Нет настроек MTProto прокси сервера телеграмма.\n" \
@@ -90,59 +107,27 @@ rexp_http_url = r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b
 # проверка на разрешенного пользователя
 def is_allow_user(iduser, allow_users):
     for user in allow_users:
-        if user == iduser:
+        if user.id == iduser:
             return True
     return False
 
 
 # добавляем пользователя в БД пользователей которые имеют доступ к боту
 # возвращает True 
-def write_user_db(id, name_db):
-    with open(name_db, "a") as f:
-        f.write(f"{id}\n")
-    return True
-
-
-# запись списка пользователей в файл
-def write_all_user_db(users, name_db):
-    print("users ", users)
-    if users == []:
-        user_str = ""
-    else:
-        user_str = [str(x) for x in users]
-        user_str = "\n".join(user_str)
-    with open(name_db, "w") as f:
-        f.write(f"{user_str}\n")
+def add_new_user(id, settings):
+    name = 'New User'  # # TODO: сделать получение имени пользователя
+    new_user = User(id=id, name=name)
+    settings.add_user(new_user)
     return True
 
 
 # возвращает список пользователей которые имеют доступ к боту
-def read_user_db(name_db):
-    if not os.path.exists(name_db):
-        return []
-    with open(name_db, "r") as f:
-        result = f.read()
-    result = result.split()
-    result = [int(x) for x in result]
+def read_user_db(settings):
+    result = []
+    clients = settings.get_all_user()
+    for cl in clients:
+        result.append(cl.id)
     return result
-
-
-# получение всех пользователей бота (обычные пользователи + администраторы бота)
-def get_all_user():
-    res = admin_client + read_user_db(db_user_bot)
-    return res
-
-
-# удаление пользователя id из БД пользователей
-def del_user_db(id, name_db):
-    if not os.path.exists(name_db):
-        return False
-    all_user = read_user_db(name_db)
-    set_all_user = set(all_user)
-    set_all_user.discard(id)
-    all_user = list(set_all_user)
-    write_all_user_db(all_user, name_db)
-    return True
 
 
 # ----- END Вспомогательные функции
@@ -157,7 +142,7 @@ async def start(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
-    if not is_allow_user(sender_id, get_all_user()):
+    if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -174,7 +159,7 @@ async def about(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
-    if not is_allow_user(sender_id, get_all_user()):
+    if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -187,7 +172,7 @@ async def clear_all_mp3(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
-    if not is_allow_user(sender_id, get_all_user()):
+    if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -238,7 +223,7 @@ async def help(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
-    if not is_allow_user(sender_id, get_all_user()):
+    if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -255,7 +240,7 @@ async def get_mp3_from_youtube(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
-    if not is_allow_user(sender_id, get_all_user()):
+    if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
@@ -327,7 +312,7 @@ async def get_mp3_from_youtube(event):
     files_mp3 = []
     for s in str_result2:
         if str_search2 in s:
-            ss = s[s.index('"')+1:]
+            ss = s[s.index('"') + 1:]
             files_mp3.append(ss[:ss.index('"')].strip())
 
     try:
@@ -393,7 +378,7 @@ async def adduser_admin(event):
             id_new_user = await conv.get_response()
             id_new_user = id_new_user.message
         # print("id_new_user ", id_new_user)
-        write_user_db(id_new_user, db_user_bot)
+        add_new_user(id_new_user, settings)
         await conv.send_message(f"Добавили нового пользователя с ID: {id_new_user}")
 
 
@@ -426,14 +411,18 @@ async def deluser_admin(event):
                                     "Попробуйте еще раз.")
             id_del_user = await conv.get_response()
             id_del_user = id_del_user.message
-        del_user_db(int(id_del_user), db_user_bot)
-        await conv.send_message(f"Пользователю с ID: {id_del_user} " \
-                                "доступ к боту запрещен.")
+        # проверяем на то если пользователь админ который захочет удалить себя это не получится
+        if not is_allow_user(int(id_del_user), admin_client):
+            settings.del_user(int(id_del_user))
+            await conv.send_message(f"Пользователю с ID: {id_del_user} " \
+                                    "доступ к боту запрещен.")
+        else:
+            await conv.send_message("Удаление пользователя с правами администратора запрещено.")
 
 
 @bot.on(events.NewMessage(pattern='/InfoUser'))
 async def infouser_admin(event):
-    ids = read_user_db(db_user_bot)
+    ids = read_user_db(settings)
     ids = [str(x) for x in ids]
     strs = ", ".join(ids)
     await event.respond(f"Пользователи которые имеют доступ:\n{strs}")
