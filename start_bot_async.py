@@ -52,9 +52,9 @@ print(admin_client)
 name_file_settings = 'settings.db'
 if not os.path.exists(name_file_settings):
     print('нет файла настроек')
-    name_admin = 'User1'  # TODO: сделать получение имени пользователя
+    name_admin = ''  # TODO: сделать получение имени пользователя
     settings = SettingUser(namedb=name_file_settings)
-    admin_User = User(id=admin_client, role=Role.admin)
+    admin_User = User(id=admin_client, role=Role.admin, active=True)
     settings.add_user(admin_User)
 else:
     print('есть файл настроек')
@@ -132,6 +132,21 @@ def read_user_db(settings):
 
 # ----- END Вспомогательные функции
 
+async def check_name_user_empty(client, sender_id, db):
+    """
+        проверим есть ли у этого пользователя имя пользователя в нашей БД настроек
+        возвращает имя пользователя
+    """
+    user_name = db.get_user(sender_id)
+    # print(f'Имя пользователя в БД {user_name}')
+    user_name_tlg = await get_name_user(client, sender_id)
+    # print(f'Имя пользователя в Телеграмме {user_name_tlg}')
+    if len(user_name.name) == 0:
+        user_name.name = user_name_tlg
+        db.update_user(user_name)
+    return user_name.name
+
+
 @bot.on(events.CallbackQuery)
 async def handler(event):
     await event.answer('You clicked {}!'.format(event.data))
@@ -142,12 +157,16 @@ async def start(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
+
     if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
-    await event.respond(f"Привет, {sender.first_name}! Я рад видеть тебя!\n" \
+
+    user_name = await check_name_user_empty(event.client, sender_id, settings)
+
+    await event.respond(f"Привет, {user_name}! Я рад видеть тебя!\n" \
                         "Пришли мне ссылку на клип ютуба, обратно получите его аудио дорожку.",
                         buttons=[[Button.text("/help"), Button.text("/admin")]]
                         )
@@ -164,6 +183,9 @@ async def about(event):
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
+
+    user_name = await check_name_user_empty(event.client, sender_id, settings)
+
     await event.respond("Я конвертирую youtube клип в mp3.")
 
 
@@ -177,6 +199,7 @@ async def clear_all_mp3(event):
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
+
     await event.respond("Очистка папки mp3 от файлов...")
     # TODO: сделать удаление файлов
     user_folder = str(sender.id)
@@ -228,6 +251,7 @@ async def help(event):
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
+
     await event.respond(help_text)
 
 
@@ -248,6 +272,9 @@ async def get_mp3_from_youtube(event):
 
     # chat = await event.get_input_chat()
     sender = await event.get_sender()
+    sender_id = sender.id
+    user_name = await check_name_user_empty(event.client, sender_id, settings)
+
     # buttons = await event.get_buttons()
     # print(sender.id)
     user_folder = str(sender.id)
@@ -348,6 +375,19 @@ async def admin(event):
                         )
 
 
+async def get_name_user(client, user_id):
+    """
+        получаем информацию о пользователе телеграмма по его user_id (user_id тип int)
+    """
+    try:
+        new_name_user = await client.get_entity(user_id)
+        new_name_user = new_name_user.first_name
+    except ValueError as err:
+        print('Ошибка получения информации о пользователе по id: ', err)
+        new_name_user = ''
+    return new_name_user
+
+
 @bot.on(events.NewMessage(pattern='/AddUser'))
 async def adduser_admin(event):
     """
@@ -379,17 +419,11 @@ async def adduser_admin(event):
             id_new_user = id_new_user.message
         # print("id_new_user ", id_new_user)
 
-        # получаем информацию о пользователе
-        try:
-            new_nameuser = await event.client.get_entity(int(id_new_user))
-            new_nameuser = new_nameuser.username
-        except ValueError as err:
-            print('Ошибка получения информации о пользователе по id: ', err)
-            new_nameuser = ''
+        new_name_user = await get_name_user(event.client, int(id_new_user))
 
-        print('Имя нового пользователя', new_nameuser)
+        print('Имя нового пользователя', new_name_user)
         add_new_user(id_new_user, settings)
-        await conv.send_message(f"Добавили нового пользователя с ID: {id_new_user} с именем {new_nameuser}")
+        await conv.send_message(f"Добавили нового пользователя с ID: {id_new_user} с именем {new_name_user}")
 
 
 @bot.on(events.NewMessage(pattern='/DelUser'))
@@ -448,7 +482,7 @@ async def exitadmin_admin(event):
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
-    flag_admin = False
+    # flag_admin = False
     await event.respond(f"Вы вышли из режима администратора.",
                         buttons=button_main
                         )
