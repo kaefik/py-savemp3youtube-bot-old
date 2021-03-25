@@ -107,6 +107,22 @@ button_admin = [
      Button.text("/ExitAdmin")]
 ]
 
+# кнопки для режима настроек пользователя
+button_settings = [
+    [Button.text("/TypeResult"),
+     Button.text("/QualityResult"),
+     Button.text("/ExitSettings")]
+]
+
+# выбор типа результатирующего файла
+button_typeresult = [
+    [
+        Button.text("/TypeResultSound"),
+        Button.text("/TypeResultVideo"),
+        Button.text("/ExitTypeResult"),
+    ]
+]
+
 db_user_bot = "db_user_allow.txt"
 rexp_http_url = r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)"
 
@@ -485,6 +501,65 @@ async def exit_admin_admin(event):
     await event.respond(f"Вы вышли из режима администратора.",
                         buttons=button_main_admin)
 
+
+# ---------------------- Команды settings
+
+"""
+    [Button.text("/TypeResult"),
+     Button.text("/QualityResult"),
+     Button.text("/ExitSettings")]
+"""
+
+
+@bot.on(events.NewMessage(pattern='/settings'))
+async def settings_cmd(event):
+    sender = await event.get_sender()
+    # проверка на право доступа к боту
+    sender_id = sender.id
+    if not is_allow_user(sender_id, admin_client):
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
+                            f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
+        return
+    # END проверка на право доступа к боту
+    await event.respond("Вы вошли в режим настроек пользователя",
+                        buttons=button_settings)
+
+
+@bot.on(events.NewMessage(pattern='/ExitSettings'))
+async def exit_settings_cmd(event):
+    sender = await event.get_sender()
+    # # проверка на право доступа к боту
+    sender_id = sender.id
+    if not is_allow_user(sender_id, admin_client):
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
+                            f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
+        return
+    # END проверка на право доступа к боту
+    user_name = await check_name_user_empty(event.client, sender_id, settings)
+
+    if user_name.role == Role.admin:
+        buttons = button_main_admin
+    else:
+        buttons = button_main_user
+
+    await event.respond("Вы вышли из режима настроек пользователя.", buttons=buttons)
+
+
+@bot.on(events.NewMessage(pattern='/TypeResult'))
+async def typeresult_cmd(event):
+    sender = await event.get_sender()
+    # проверка на право доступа к боту
+    sender_id = sender.id
+    if not is_allow_user(sender_id, admin_client):
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
+                            f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
+        return
+    # END проверка на право доступа к боту
+    await event.respond("Выберите тип результирующего файла.",
+                        buttons=button_typeresult)
+
+
+# ---------------------- END Команды settings
 
 def main():
     bot.run_until_disconnected()
