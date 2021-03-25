@@ -86,10 +86,20 @@ with open("help.txt", "r") as f:
 # флаг режима администратора
 flag_admin = False
 
-button_main = [
-    [Button.text("/help"), Button.text("/admin")]
+# кнопки главного режима для администратора
+button_main_admin = [
+    [Button.text("/help"),
+     Button.text("/admin"),
+     Button.text("/settings")]
 ]
 
+# кнопки главного режима для обычного пользователя
+button_main_user = [
+    [Button.text("/help"),
+     Button.text("/admin")]
+]
+
+# кнопки для режима администратора
 button_admin = [
     [Button.text("/AddUser"),
      Button.text("/DelUser"),
@@ -130,7 +140,18 @@ def read_user_db(settings):
     return result
 
 
-# ----- END Вспомогательные функции
+async def get_name_user(client, user_id):
+    """
+        получаем информацию о пользователе телеграмма по его user_id (user_id тип int)
+    """
+    try:
+        new_name_user = await client.get_entity(user_id)
+        new_name_user = new_name_user.first_name
+    except ValueError as err:
+        print('Ошибка получения информации о пользователе по id: ', err)
+        new_name_user = ''
+    return new_name_user
+
 
 async def check_name_user_empty(client, sender_id, db):
     """
@@ -144,7 +165,10 @@ async def check_name_user_empty(client, sender_id, db):
     if len(user_name.name) == 0:
         user_name.name = user_name_tlg
         db.update_user(user_name)
-    return user_name.name
+    return user_name
+
+
+# ----- END Вспомогательные функции
 
 
 @bot.on(events.CallbackQuery)
@@ -153,7 +177,7 @@ async def handler(event):
 
 
 @bot.on(events.NewMessage(pattern='/start'))
-async def start(event):
+async def start_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
@@ -166,25 +190,28 @@ async def start(event):
 
     user_name = await check_name_user_empty(event.client, sender_id, settings)
 
-    await event.respond(f"Привет, {user_name}! Я рад видеть тебя!\n" \
+    if user_name.role == Role.admin:
+        buttons = button_main_admin
+    else:
+        buttons = button_main_user
+
+    await event.respond(f"Привет, {user_name.name}! Я рад видеть тебя!\n" \
                         "Пришли мне ссылку на клип ютуба, обратно получите его аудио дорожку.",
-                        buttons=[[Button.text("/help"), Button.text("/admin")]]
+                        buttons=buttons
                         )
     raise events.StopPropagation
 
 
 @bot.on(events.NewMessage(pattern='/about'))
-async def about(event):
+async def about_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
     if not is_allow_user(sender_id, settings.get_all_user()):
-        await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
-
-    user_name = await check_name_user_empty(event.client, sender_id, settings)
 
     await event.respond("Я конвертирую youtube клип в mp3.")
 
@@ -201,7 +228,6 @@ async def clear_all_mp3(event):
     # END проверка на право доступа к боту
 
     await event.respond("Очистка папки mp3 от файлов...")
-    # TODO: сделать удаление файлов
     user_folder = str(sender.id)
     folder_mp3 = f"{path_mp3}/{user_folder}"
 
@@ -242,7 +268,7 @@ async def clear_all_mp3(event):
 
 
 @bot.on(events.NewMessage(pattern='/help'))
-async def help(event):
+async def help_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
@@ -273,7 +299,6 @@ async def get_mp3_from_youtube(event):
     # chat = await event.get_input_chat()
     sender = await event.get_sender()
     sender_id = sender.id
-    user_name = await check_name_user_empty(event.client, sender_id, settings)
 
     # buttons = await event.get_buttons()
     # print(sender.id)
@@ -349,57 +374,37 @@ async def get_mp3_from_youtube(event):
 
     except FileNotFoundError:
         await event.respond(f"Вывод результат команды {cmds}:\n {result}")
-        await event.respond("Внутреняя ошибка: или урл не доступен, " \
-                            "или конвертация невозможна.\n" \
+        await event.respond("Внутренняя ошибка: или урл не доступен, "
+                            "или конвертация невозможна.\n"
                             "Попробуйте позже или другую ссылку.")
     except Exception as err:
-        # print("!!!! Внутреняя ошибка: ", err)
-        await event.respond(f"!!!! Внутреняя ошибка: {err}")
+        # print("!!!! Внутренняя ошибка: ", err)
+        await event.respond(f"!!!! Внутренняя ошибка: {err}")
     # END сделать конвертирование в mp3
     await event.respond("Конец конвертации!")
 
 
 @bot.on(events.NewMessage(pattern='/admin'))
-async def admin(event):
+async def admin_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
     if not is_allow_user(sender_id, admin_client):
-        await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
-    flag_admin = True
     await event.respond("Вы вошли в режим администратора",
-                        buttons=button_admin
-                        )
-
-
-async def get_name_user(client, user_id):
-    """
-        получаем информацию о пользователе телеграмма по его user_id (user_id тип int)
-    """
-    try:
-        new_name_user = await client.get_entity(user_id)
-        new_name_user = new_name_user.first_name
-    except ValueError as err:
-        print('Ошибка получения информации о пользователе по id: ', err)
-        new_name_user = ''
-    return new_name_user
+                        buttons=button_admin)
 
 
 @bot.on(events.NewMessage(pattern='/AddUser'))
-async def adduser_admin(event):
-    """
-    if not flag_admin:
-        await event.respond("Войдите в режим администратора.")
-        return
-    """
+async def add_user_admin(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
     if not is_allow_user(sender_id, admin_client):
-        await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
@@ -408,7 +413,7 @@ async def adduser_admin(event):
     chat_id = event.chat_id
     async with bot.conversation(chat_id) as conv:
         # response = conv.wait_event(events.NewMessage(incoming=True))
-        await conv.send_message("Привет! Введите номер id пользователя" \
+        await conv.send_message("Привет! Введите номер id пользователя"
                                 "который нужно добавить для доступа к боту:")
         id_new_user = await conv.get_response()
         id_new_user = id_new_user.message
@@ -427,17 +432,12 @@ async def adduser_admin(event):
 
 
 @bot.on(events.NewMessage(pattern='/DelUser'))
-async def deluser_admin(event):
-    """
-    if not flag_admin:
-        await event.respond("Войдите в режим администратора.")
-        return
-    """
+async def del_user_admin(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
     if not is_allow_user(sender_id, admin_client):
-        await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
@@ -446,26 +446,26 @@ async def deluser_admin(event):
     chat_id = event.chat_id
     async with bot.conversation(chat_id) as conv:
         # response = conv.wait_event(events.NewMessage(incoming=True))
-        await conv.send_message("Привет! Введите номер id пользователя " \
+        await conv.send_message("Привет! Введите номер id пользователя "
                                 "который нужно запретить доступ к боту")
         id_del_user = await conv.get_response()
         id_del_user = id_del_user.message
         while not any(x.isdigit() for x in id_del_user):
-            await conv.send_message("ID пользователя - это число. " \
+            await conv.send_message("ID пользователя - это число. "
                                     "Попробуйте еще раз.")
             id_del_user = await conv.get_response()
             id_del_user = id_del_user.message
         # проверяем на то если пользователь админ который захочет удалить себя это не получится
         if not is_allow_user(int(id_del_user), admin_client):
             settings.del_user(int(id_del_user))
-            await conv.send_message(f"Пользователю с ID: {id_del_user} " \
+            await conv.send_message(f"Пользователю с ID: {id_del_user} "
                                     "доступ к боту запрещен.")
         else:
             await conv.send_message("Удаление пользователя с правами администратора запрещено.")
 
 
 @bot.on(events.NewMessage(pattern='/InfoUser'))
-async def infouser_admin(event):
+async def info_user_admin(event):
     ids = read_user_db(settings)
     ids = [str(x) for x in ids]
     strs = ", ".join(ids)
@@ -473,19 +473,17 @@ async def infouser_admin(event):
 
 
 @bot.on(events.NewMessage(pattern='/ExitAdmin'))
-async def exitadmin_admin(event):
+async def exit_admin_admin(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
     if not is_allow_user(sender_id, admin_client):
-        await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
-    # flag_admin = False
     await event.respond(f"Вы вышли из режима администратора.",
-                        buttons=button_main
-                        )
+                        buttons=button_main_admin)
 
 
 def main():
