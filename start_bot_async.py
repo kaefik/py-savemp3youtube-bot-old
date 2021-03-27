@@ -316,6 +316,8 @@ async def get_mp3_from_youtube(event):
     sender = await event.get_sender()
     sender_id = sender.id
 
+    current_user = settings.get_user(sender_id)
+
     # buttons = await event.get_buttons()
     # print(sender.id)
     user_folder = str(sender.id)
@@ -324,80 +326,144 @@ async def get_mp3_from_youtube(event):
     match = re.search(rexp_http_url, event.raw_text)
     url_youtube = match.group()
     print(url_youtube)
-    await event.respond("Начало конвертации ютуб клипа в mp3...")
-    # print("get_mp3_from_youtube start subprocess begin")
-    cmds = f'youtube-dl --extract-audio --audio-format mp3 ' \
-           f'--output "{path_mp3}/{user_folder}/%(title)s.%(ext)s" {url_youtube}'
-    # print(cmds)
 
-    done, _ = await asyncio.wait([
-        run_cmd(cmds)
-    ])
+    if current_user.typeresult == TypeResult.sound:
 
-    # result - результат выполнения команды cmds
-    # error - ошибка, если команда cmds завершилась с ошибкой
-    # code - код работы команды, если 0 , то команда прошла без ошибок
-    result, error, code = done.pop().result()
+        await event.respond("Начало конвертации ютуб клипа в mp3...")
+        # print("get_mp3_from_youtube start subprocess begin")
+        cmds = f'youtube-dl --extract-audio --audio-format mp3 ' \
+               f'--output "{path_mp3}/{user_folder}/%(title)s.%(ext)s" {url_youtube}'
+        # print(cmds)
 
-    if code != 0:
-        await event.respond(f"!!!! код: {code} \n" \
-                            f"Внутреняя ошибка: {error}")
-        return
+        done, _ = await asyncio.wait([
+            run_cmd(cmds)
+        ])
 
-    result = result.decode("utf-8")
-    str_result = result.split("\n")
-    str_search = "[ffmpeg] Destination:"
-    file_mp3 = ""
-    for s in str_result:
-        if str_search in s:
-            file_mp3 = s[len(str_search):].strip()
-            break
+        # result - результат выполнения команды cmds
+        # error - ошибка, если команда cmds завершилась с ошибкой
+        # code - код работы команды, если 0 , то команда прошла без ошибок
+        result, error, code = done.pop().result()
 
-    await event.respond("mp3 файл скачан...будем делить на части")
-    # деление mp3 файла на части, если нужно с помощью команды mp3splt
-    timesplit = "59.0"  # длительность каждой части формат: минуты.секунда
-    cmds2 = f'mp3splt -t {timesplit} "{file_mp3}"'
+        if code != 0:
+            await event.respond(f"!!!! код: {code} \n" \
+                                f"Внутреняя ошибка: {error}")
+            return
 
-    # print(cmds)
+        result = result.decode("utf-8")
+        str_result = result.split("\n")
+        str_search = "[ffmpeg] Destination:"
+        file_mp3 = ""
+        for s in str_result:
+            if str_search in s:
+                file_mp3 = s[len(str_search):].strip()
+                break
 
-    done2, _ = await asyncio.wait([
-        run_cmd(cmds2)
-    ])
+        await event.respond("mp3 файл скачан...будем делить на части")
+        # деление mp3 файла на части, если нужно с помощью команды mp3splt
+        timesplit = "59.0"  # длительность каждой части формат: минуты.секунда
+        cmds2 = f'mp3splt -t {timesplit} "{file_mp3}"'
 
-    # result - результат выполнения команды cmds
-    # error - ошибка, если команда cmds завершилась с ошибкой
-    # code - код работы команды, если 0 , то команда прошла без ошибок
-    result2, error2, code2 = done2.pop().result()
+        # print(cmds)
 
-    if code2 != 0:
-        await event.respond(f"!!!! код: {code2} \n" \
-                            f"Внутреняя ошибка: {error2}")
-        return
+        done2, _ = await asyncio.wait([
+            run_cmd(cmds2)
+        ])
 
-    result2 = result2.decode("utf-8")
-    str_result2 = result2.split("\n")
-    str_search2 = "File"
-    files_mp3 = []
-    for s in str_result2:
-        if str_search2 in s:
-            ss = s[s.index('"') + 1:]
-            files_mp3.append(ss[:ss.index('"')].strip())
+        # result - результат выполнения команды cmds
+        # error - ошибка, если команда cmds завершилась с ошибкой
+        # code - код работы команды, если 0 , то команда прошла без ошибок
+        result2, error2, code2 = done2.pop().result()
 
-    try:
-        await event.respond(f"Результат конвертации:")
-        for el in files_mp3:
-            await event.respond(file=el)
+        if code2 != 0:
+            await event.respond(f"!!!! код: {code2} \n" \
+                                f"Внутреняя ошибка: {error2}")
+            return
 
-    except FileNotFoundError:
-        await event.respond(f"Вывод результат команды {cmds}:\n {result}")
-        await event.respond("Внутренняя ошибка: или урл не доступен, "
-                            "или конвертация невозможна.\n"
-                            "Попробуйте позже или другую ссылку.")
-    except Exception as err:
-        # print("!!!! Внутренняя ошибка: ", err)
-        await event.respond(f"!!!! Внутренняя ошибка: {err}")
-    # END сделать конвертирование в mp3
-    await event.respond("Конец конвертации!")
+        result2 = result2.decode("utf-8")
+        str_result2 = result2.split("\n")
+        str_search2 = "File"
+        files_mp3 = []
+        for s in str_result2:
+            if str_search2 in s:
+                ss = s[s.index('"') + 1:]
+                files_mp3.append(ss[:ss.index('"')].strip())
+
+        try:
+            await event.respond(f"Результат конвертации:")
+            for el in files_mp3:
+                await event.respond(file=el)
+
+        except FileNotFoundError:
+            await event.respond(f"Вывод результат команды {cmds}:\n {result}")
+            await event.respond("Внутренняя ошибка: или урл не доступен, "
+                                "или конвертация невозможна.\n"
+                                "Попробуйте позже или другую ссылку.")
+        except Exception as err:
+            # print("!!!! Внутренняя ошибка: ", err)
+            await event.respond(f"!!!! Внутренняя ошибка: {err}")
+        # END сделать конвертирование в mp3
+        await event.respond("Конец конвертации!")
+
+    elif current_user.typeresult == TypeResult.video:  # качаем видео
+        await event.respond("Начало конвертации ютуб клипа в видео...")
+
+        quality_video = 360
+
+        if current_user.qualityresult == QualityResult.high:
+            quality_video = 720
+        elif current_user.qualityresult == QualityResult.medium:
+            quality_video = 360
+        elif current_user.qualityresult == QualityResult.low:
+            quality_video = 244
+
+        await event.respond(f"Качество видео {quality_video}p")
+
+        cmds = f'youtube-dl -f "bestvideo[height<={quality_video}]+bestaudio/best[height<={quality_video}]"' \
+               f' --output "{path_mp3}/{user_folder}/%(title)s.%(ext)s" "{url_youtube}"'
+        # print(cmds)
+
+        done, _ = await asyncio.wait([
+            run_cmd(cmds)
+        ])
+
+        # result - результат выполнения команды cmds
+        # error - ошибка, если команда cmds завершилась с ошибкой
+        # code - код работы команды, если 0 , то команда прошла без ошибок
+        result, error, code = done.pop().result()
+
+        if code != 0:
+            await event.respond(f"!!!! код: {code} \n" \
+                                f"Внутреняя ошибка: {error}")
+            return
+
+        result = result.decode("utf-8")
+        str_result = result.split("\n")
+        str_search = "[ffmpeg] Merging formats into"
+        file_video = ""
+        for s in str_result:
+            if str_search in s:
+                file_video = s[len(str_search):].strip()
+                break
+        file_video = file_video.replace('"','')
+        print(file_video)
+
+        try:
+            await event.respond(f"Результат конвертации:")
+            # for el in files_mp3:
+            await event.respond(file=file_video)
+
+        except FileNotFoundError:
+            await event.respond(f"Вывод результат команды {cmds}:\n {result}")
+            await event.respond("Внутренняя ошибка: или урл не доступен, "
+                                "или конвертация невозможна.\n"
+                                "Попробуйте позже или другую ссылку.")
+        except Exception as err:
+            # print("!!!! Внутренняя ошибка: ", err)
+            await event.respond(f"!!!! Внутренняя ошибка: {err}")
+
+        await event.respond("Конец конвертации!")
+    else:
+        await event.respond("Я пока не поддерживаю такой тип результата ", current_user.typeresult)
 
 
 @bot.on(events.NewMessage(pattern='/admin'))
@@ -504,12 +570,6 @@ async def exit_admin_admin(event):
 
 # ---------------------- Команды settings
 
-"""
-    [Button.text("/TypeResult"),
-     Button.text("/QualityResult"),
-     Button.text("/ExitSettings")]
-"""
-
 
 @bot.on(events.NewMessage(pattern='/settings'))
 async def settings_cmd(event):
@@ -557,6 +617,8 @@ async def typeresult_cmd(event):
     # END проверка на право доступа к боту
 
     message = event.raw_text
+
+    new_message = ''
 
     if message == '/TypeResult':
         new_message = 'Выберите тип результирующего файла.'
