@@ -438,14 +438,30 @@ async def get_mp3_from_youtube(event):
 
         result = result.decode("utf-8")
         str_result = result.split("\n")
+
+        str_search_already_begin = '[download]'
+        str_search_already_back = 'has already been downloaded and merged'
         str_search = "[ffmpeg] Merging formats into"
         file_video = ""
-        for s in str_result:
-            if str_search in s:
-                file_video = s[len(str_search):].strip()
-                break
-        file_video = file_video.replace('"','')
-        print(file_video)
+
+        if result.find(str_search_already_back) > -1:
+            # видео уже есть
+            for s in str_result:
+                if str_search_already_begin in s:
+                    file_video = s[len(str_search_already_begin):-len(str_search_already_back)].strip()
+                    break
+            file_video = file_video.replace('"', '')
+            print(file_video)
+            await event.respond("Это видео уже было получено ранее.")
+
+        elif result.find(str_search) > -1:
+
+            for s in str_result:
+                if str_search in s:
+                    file_video = s[len(str_search):].strip()
+                    break
+            file_video = file_video.replace('"', '')
+            print(file_video)
 
         try:
             await event.respond(f"Результат конвертации:")
