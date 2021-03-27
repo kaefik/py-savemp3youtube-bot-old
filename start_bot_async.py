@@ -42,7 +42,7 @@ print(admin_client)
 name_file_settings = 'settings.db'
 if not os.path.exists(name_file_settings):
     print('нет файла настроек')
-    name_admin = ''  # TODO: сделать получение имени пользователя
+    name_admin = ''
     settings = SettingUser(namedb=name_file_settings)
     admin_User = User(id=admin_client, role=Role.admin, active=True)
     settings.add_user(admin_User)
@@ -141,8 +141,7 @@ def is_allow_user(iduser, allow_users):
 # добавляем пользователя в БД пользователей которые имеют доступ к боту
 # возвращает True 
 def add_new_user(id, settings):
-    name = 'New User'  # # TODO: сделать получение имени пользователя
-    new_user = User(id=id, name=name)
+    new_user = User(id=id)
     settings.add_user(new_user)
     return True
 
@@ -463,10 +462,70 @@ async def get_mp3_from_youtube(event):
             file_video = file_video.replace('"', '')
             print(file_video)
 
+        if (os.path.getsize(file_video) / 1048576) <= 60:  # размер файла (Мб)
+            try:
+                await event.respond(f"Результат конвертации:")
+                await event.respond(file=file_video)
+
+            except FileNotFoundError:
+                await event.respond(f"Вывод результат команды {cmds}:\n {result}")
+                await event.respond("Внутренняя ошибка: или урл не доступен, "
+                                    "или конвертация невозможна.\n"
+                                    "Попробуйте позже или другую ссылку.")
+            except Exception as err:
+                # print("!!!! Внутренняя ошибка: ", err)
+                await event.respond(f"!!!! Внутренняя ошибка: {err}")
+
+            await event.respond("Конец конвертации!")
+            return
+
+        await event.respond("видео файл скачан...будем делить на части")
+        # деление видео файла на части, если нужно с помощью команды ffmpeg
+        timesplit = "3600"  # длительность каждой части формат: секунда
+        filename, file_extension = os.path.splitext(file_video)
+        cmds2 = f'ffmpeg -i "{file_video}" -acodec copy -f segment -segment_time {timesplit} -vcodec copy -reset_timestamps 1 ' \
+                f'-map 0 "{filename}_%03d{file_extension}"'
+
+        print(cmds2)
+
+        done2, _ = await asyncio.wait([
+            run_cmd(cmds2)
+        ])
+
+        # result - результат выполнения команды cmds
+        # error - ошибка, если команда cmds завершилась с ошибкой
+        # code - код работы команды, если 0 , то команда прошла без ошибок
+        result2, error2, code2 = done2.pop().result()
+
+        if code2 != 0:
+            await event.respond(f"!!!! код: {code2} \n" \
+                                f"Внутреняя ошибка: {error2}")
+            return
+        else:
+            result2 = result2 + error2
+            # удаляем исходный файл
+            os.remove(file_video)
+
+        result2 = result2.decode("utf-8")
+        str_result2 = result2.split("\n")
+
+        # print(result2)
+
+        # определяем имена файлов которые получились при разделении файлов
+        str_search_split_begin = 'Opening'
+        str_search_split_end = 'for writing'
+        files_video = []
+        for s in str_result2:
+            if str_search_split_begin in s:
+                f_video = s[s.index(str_search_split_begin) + 7:-len(str_search_split_end)].strip()
+                f_video = f_video.replace("'", '')
+                # print(f_video)
+                files_video.append(f_video)
+
         try:
             await event.respond(f"Результат конвертации:")
-            # for el in files_mp3:
-            await event.respond(file=file_video)
+            for el in files_video:
+                await event.respond(file=el)
 
         except FileNotFoundError:
             await event.respond(f"Вывод результат команды {cmds}:\n {result}")
@@ -478,6 +537,7 @@ async def get_mp3_from_youtube(event):
             await event.respond(f"!!!! Внутренняя ошибка: {err}")
 
         await event.respond("Конец конвертации!")
+
     else:
         await event.respond("Я пока не поддерживаю такой тип результата ", current_user.typeresult)
 
