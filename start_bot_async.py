@@ -17,16 +17,6 @@ from sqlitelib.sqliteutils import User, SettingUser, Role, TypeResult, QualityRe
 
 # ---- Начальные данные ----
 path_mp3 = "mp3"
-"""
-level=logging.CRITICAL  # won't show errors (same as disabled)
-level=logging.ERROR     # will only show errors that you didn't handle
-level=logging.WARNING   # will also show messages with medium severity, 
-                        # such as internal Telegram issues
-level=logging.INFO      # will also show informational messages, 
-                        # such as connection or disconnections
-level=logging.DEBUG     # will show a lot of output to help debugging 
-                        # issues in the library
-"""
 
 logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s',
                     level=logging.WARNING)
@@ -114,12 +104,22 @@ button_settings = [
      Button.text("/ExitSettings")]
 ]
 
-# выбор типа результатирующего файла
+# выбор типа результирующего файла
 button_typeresult = [
     [
         Button.text("/TypeResultSound"),
         Button.text("/TypeResultVideo"),
         Button.text("/ExitTypeResult"),
+    ]
+]
+
+# выбор качества результирующего файла
+button_qualityresult = [
+    [
+        Button.text("/HighResult"),
+        Button.text("/MediumResult"),
+        Button.text("/LowResult"),
+        Button.text("/ExitQualityResult"),
     ]
 ]
 
@@ -152,7 +152,7 @@ def read_user_db(settings):
     result = []
     clients = settings.get_all_user()
     for cl in clients:
-        result.append(cl.id)
+        result.append(cl.__str__())
     return result
 
 
@@ -484,7 +484,7 @@ async def del_user_admin(event):
 async def info_user_admin(event):
     ids = read_user_db(settings)
     ids = [str(x) for x in ids]
-    strs = ", ".join(ids)
+    strs = '\n'.join(ids)
     await event.respond(f"Пользователи которые имеют доступ:\n{strs}")
 
 
@@ -525,7 +525,7 @@ async def settings_cmd(event):
                         buttons=button_settings)
 
 
-@bot.on(events.NewMessage(pattern='/ExitSettings'))
+@bot.on(events.NewMessage(pattern='/ExitSettings|/ExitTypeResult|/ExitQualityResult'))
 async def exit_settings_cmd(event):
     sender = await event.get_sender()
     # # проверка на право доступа к боту
@@ -545,7 +545,7 @@ async def exit_settings_cmd(event):
     await event.respond("Вы вышли из режима настроек пользователя.", buttons=buttons)
 
 
-@bot.on(events.NewMessage(pattern='/TypeResult'))
+@bot.on(events.NewMessage(pattern='/TypeResult|/QualityResult'))
 async def typeresult_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
@@ -555,8 +555,73 @@ async def typeresult_cmd(event):
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
         return
     # END проверка на право доступа к боту
-    await event.respond("Выберите тип результирующего файла.",
-                        buttons=button_typeresult)
+
+    message = event.raw_text
+
+    if message == '/TypeResult':
+        new_message = 'Выберите тип результирующего файла.'
+        button = button_typeresult
+    elif message == '/QualityResult':
+        new_message = 'Выберите качество результирующего файла.'
+        button = button_qualityresult
+
+    await event.respond(new_message, buttons=button)
+
+
+@bot.on(events.NewMessage(pattern='/TypeResultSound|/TypeResultVideo'))
+async def typeresult_cmd(event):
+    sender = await event.get_sender()
+    # проверка на право доступа к боту
+    sender_id = sender.id
+    if not is_allow_user(sender_id, admin_client):
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
+                            f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
+        return
+    # END проверка на право доступа к боту
+    message = event.raw_text  # сырой текст который ввёл пользователь
+
+    current_user = settings.get_user(sender_id)
+
+    if message == '/TypeResultSound':
+        new_message = 'Для текущего пользователя выбрали результатом работы бота только звук.'
+        current_user.typeresult = TypeResult.sound
+
+    elif message == '/TypeResultVideo':
+        new_message = 'Для текущего пользователя выбрали результатом работы бота видео со звуком.'
+        current_user.typeresult = TypeResult.video
+
+    settings.update_user(current_user)
+    await event.respond(new_message, buttons=button_settings)
+
+
+@bot.on(events.NewMessage(pattern='/HighResult|/MediumResult|/LowResult'))
+async def qualityresult_cmd(event):
+    sender = await event.get_sender()
+    # проверка на право доступа к боту
+    sender_id = sender.id
+    if not is_allow_user(sender_id, admin_client):
+        await event.respond(f"Доступ запрещен. Обратитесь к администратору"
+                            f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
+        return
+    # END проверка на право доступа к боту
+    message = event.raw_text  # сырой текст который ввёл пользователь
+
+    current_user = settings.get_user(sender_id)
+
+    if message == '/HighResult':
+        new_message = 'Для текущего пользователя выбрали высокое качество.'
+        current_user.qualityresult = QualityResult.high
+
+    elif message == '/MediumResult':
+        new_message = 'Для текущего пользователя выбрали среднее качество.'
+        current_user.qualityresult = QualityResult.medium
+
+    elif message == '/LowResult':
+        new_message = 'Для текущего пользователя выбрали низкое качество.'
+        current_user.qualityresult = QualityResult.low
+
+    settings.update_user(current_user)
+    await event.respond(new_message, buttons=button_settings)
 
 
 # ---------------------- END Команды settings
