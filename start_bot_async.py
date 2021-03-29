@@ -68,11 +68,6 @@ else:
                          connection=connection.ConnectionTcpMTProxyRandomizedIntermediate,
                          proxy=proxy).start(bot_token=bot_token)
 
-# получаем текст для помощи о командах бота
-help_text = ""
-with open("help.txt", "r") as f:
-    help_text = f.read()
-
 # флаг режима администратора
 flag_admin = False
 
@@ -130,6 +125,17 @@ rexp_http_url = r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b
 # ---- END Начальные данные ----
 
 # ----- Вспомогательные функции
+
+def get_help(filename='help.txt'):
+    """
+        получаем текст для помощи о командах бота
+    """
+    help_text = ""
+    with open(filename, "r") as f:
+        help_text = f.read()
+    return help_text
+
+
 # проверка на разрешенного пользователя
 def is_allow_user(iduser, allow_users):
     for user in allow_users:
@@ -231,7 +237,7 @@ async def about_cmd(event):
     await event.respond("Я конвертирую youtube клип в mp3.")
 
 
-@bot.on(events.NewMessage(pattern='/delmp3'))
+@bot.on(events.NewMessage(pattern='/delfiles'))
 async def clear_all_mp3(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
@@ -293,7 +299,7 @@ async def help_cmd(event):
         return
     # END проверка на право доступа к боту
 
-    await event.respond(help_text)
+    await event.respond(get_help('help.txt'))
 
 
 # получение урл
