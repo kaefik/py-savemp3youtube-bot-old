@@ -11,8 +11,10 @@ import os
 import sqlite3
 from enum import Enum
 
-
 # доступные роли пользователя
+from typing import Optional, List
+
+
 class Role(Enum):
     admin = 1
     user = 2
@@ -179,35 +181,35 @@ class User:
 
 class SettingUser:
 
-    def __init__(self, namedb='settings.db', force=False):
+    def __init__(self, namedb: str = 'settings.db', force: bool = False) -> None:
         """
             нициализация БД настроек бота
                 namedb - название БД
                 force  - если True, то даже если БД существует, оно перезапишет его
         """
-        self.db = namedb  # имя БД настроек бота
-        self.connect = self.__createnewdb(force)  # конект в БД
+        self.db: str = namedb  # имя БД настроек бота
+        self.connect: Optional[sqlite3.Connection] = self.__createnewdb(force)  # конект в БД
 
-    def open(self):
+    def open(self) -> bool:
         """
             открыть файл настроек
         """
         try:
-            conn = sqlite3.connect(self.db)
+            self.connect = sqlite3.connect(self.db)
         except sqlite3.Error as error:
             print("Ошибка при подключении к sqlite", error)
             return False
         finally:
             return True
 
-    def close(self):
+    def close(self) -> None:
         """
             закрытие коннекта к БД
         """
         if not (self.connect is None):
             self.connect.close()
 
-    def __createnewdb(self, force=False):
+    def __createnewdb(self, force: bool = False) -> Optional[sqlite3.Connection]:
         """
             создание БД настроек бота
             возвращает True, если операция создания успешно.
@@ -248,16 +250,19 @@ class SettingUser:
                """)
         except sqlite3.Error as error:
             print("Ошибка при подключении к sqlite", error)
-            return False
+            return None
 
         return connect
 
-    def add_user(self, new_user):
+    def add_user(self, new_user: User) -> bool:
         """
             добавление нового пользователя new_user (тип User)
             возвращает: True - операция добавления пользователя удалась, False - ошибка при добавлении или пользователь существует
             тест: есть
         """
+        if self.connect is None:
+            return False
+
         cursor = self.connect.cursor()
 
         id_exist = self.is_exist_user(new_user.id)
@@ -280,7 +285,7 @@ class SettingUser:
         cursor.close()
         return True
 
-    def is_exist_user(self, idd):
+    def is_exist_user(self, idd: int) -> bool:
         """
             проверить есть ли БД пользователь с id
             тест: есть
@@ -291,11 +296,14 @@ class SettingUser:
         else:
             return False
 
-    def del_user(self, idd):
+    def del_user(self, idd: int) -> bool:
         """
             удаление пользователя с id
             тест: есть
         """
+        if self.connect is None:
+            return False
+
         cursor = self.connect.cursor()
 
         sqlite_delete_user = f"""DELETE from user where id = {idd}"""
@@ -308,7 +316,7 @@ class SettingUser:
         cursor.close()
         return True
 
-    def update_user(self, new_user):
+    def update_user(self, new_user: User) -> bool:
         """
             обновить данные пользователя  User, если такого пользователя нет, то добавляется новый пользователь
             тест: есть
@@ -317,6 +325,8 @@ class SettingUser:
 
         if not self.is_exist_user(new_user.id):
             self.add_user(new_user)
+        if self.connect is None:
+            return False
 
         cursor = self.connect.cursor()
 
@@ -334,12 +344,15 @@ class SettingUser:
         cursor.close()
         return True
 
-    def get_user(self, idd):
+    def get_user(self, idd: int) -> Optional[User]:
         """
             получить информацию о пользователе по id
             тест: есть
         """
         result = None
+
+        if self.connect is None:
+            return None
 
         cursor = self.connect.cursor()
         sqlite_query_user = f"""SELECT * FROM user WHERE id={idd}"""
@@ -361,11 +374,16 @@ class SettingUser:
                       qualityresult=result_settings[3])
         return result
 
-    def get_all_user(self):
+    def get_all_user(self) -> List[User]:
         """
             получить всех пользователей
             тест: есть
         """
+        result = []
+
+        if self.connect is None:
+            return []
+
         cursor = self.connect.cursor()
         sqlite_query_user = """SELECT * from user"""
         cursor.execute(sqlite_query_user)
@@ -374,8 +392,6 @@ class SettingUser:
         sqlite_query_user = """SELECT * from settings"""
         cursor.execute(sqlite_query_user)
         result_settings = cursor.fetchall()
-
-        result = []
 
         for row in result_user:
             result.append(User(id=row[0], name=row[1], active=row[2]))
@@ -389,13 +405,16 @@ class SettingUser:
 
         return result
 
-    def get_user_type(self, type_user):
+    def get_user_type(self, type_user: TypeResult) -> List[User]:
         """
             получение всех пользователей с типом type_user (тип Role)
             возвращает: массив пользователей, если пользователей нет, то пустой массив
             тест: есть
         """
-        result = []
+        result: List[User] = []
+
+        if self.connect is None:
+            return []
 
         cursor = self.connect.cursor()
         sqlite_query_settings = f"""SELECT * FROM settings WHERE role='{type_user}'"""
@@ -420,7 +439,7 @@ class SettingUser:
 
         return result
 
-    def fix_settings(self):
+    def fix_settings(self) -> None:
         """
             починка БД настроек пользователя,
             например каким-то образом информация о пользователе есть только в одной таблице
@@ -430,26 +449,4 @@ class SettingUser:
 
 
 if __name__ == '__main__':
-    # user1 = User()
-    # user1.name = 'User1'
-    # user1.id = 123456
-    # user1.active = True
-    # user1.role = Role.admin
-    # user1.typeresult = TypeResult.sound
-    # user1.qualityresult = QualityResult.medium
-    #
-    # user2 = User()
-    # user2.name = 'User1'
-    # user2.id = 123456
-    # user2.active = True
-    # user2.role = Role.admin
-    # user2.typeresult = TypeResult.sound
-    # user2.qualityresult = QualityResult.medium
-    # print(user1 == user2)
-    #
-    # print(ord(user2.typeresult))
-
-    # for name, member in TypeResult.__members__.items():
-    #     print(name, member)
-
     pass
