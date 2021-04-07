@@ -5,9 +5,11 @@
 
 import os
 # pip3 install python-dotenv
+from typing import Union, SupportsInt, Optional, List
+
 from dotenv import load_dotenv
 # pip3 install Telethon
-from telethon import TelegramClient, events, connection, Button
+from telethon import TelegramClient, events, connection, Button  # type: ignore
 import asyncio
 import logging
 import re
@@ -16,7 +18,7 @@ from i_utils import run_cmd
 from sqlitelib.sqliteutils import User, SettingUser, Role, TypeResult, QualityResult
 
 # ---- Начальные данные ----
-path_mp3 = "mp3"
+path_mp3: str = "mp3"
 
 logging.basicConfig(format='[%(levelname) 5s/%(asctime)s] %(name)s: %(message)s',
                     level=logging.WARNING)
@@ -26,25 +28,29 @@ dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
 # print((dotenv_path))
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
-app_api_id = os.getenv("TLG_APP_API_ID")
-app_api_hash = os.getenv("TLG_APP_API_HASH")
-app_name = os.getenv("TLG_APP_NAME")
-bot_token = os.getenv("I_BOT_TOKEN")
-proxy_server = os.getenv("TLG_PROXY_SERVER")
-proxy_port = os.getenv("TLG_PROXY_PORT")
-proxy_key = os.getenv("TLG_PROXY_KEY")
+app_api_id: Optional[str] = os.getenv("TLG_APP_API_ID")
+app_api_hash: Optional[str] = os.getenv("TLG_APP_API_HASH")
+app_name: Optional[str] = os.getenv("TLG_APP_NAME")
+bot_token: Optional[str] = os.getenv("I_BOT_TOKEN")
+proxy_server: Optional[str] = os.getenv("TLG_PROXY_SERVER")
+proxy_port: Optional[str] = os.getenv("TLG_PROXY_PORT")
+proxy_key: Optional[str] = os.getenv("TLG_PROXY_KEY")
 # клиент с правами администратора
-admin_client = int(os.getenv("TLG_ADMIN_ID_CLIENT"))
+id_admin_client: Union[int, Optional[str]] = os.getenv("TLG_ADMIN_ID_CLIENT")
+if id_admin_client is None:
+    print('Нет пользователя с правами супер администратора. определите TLG_ADMIN_ID_CLIENT. Бот невозможно запустить.')
+    exit(1)
 
-print(admin_client)
+id_admin_client = int(id_admin_client)
+# print(id_admin_client)
 
 # настройки бота
-name_file_settings = 'settings.db'
+name_file_settings: str = 'settings.db'
 if not os.path.exists(name_file_settings):
     print('нет файла настроек')
     name_admin = ''
     settings = SettingUser(namedb=name_file_settings)
-    admin_User = User(id=admin_client, role=Role.admin, active=True)
+    admin_User = User(id=id_admin_client, role=Role.admin, active=True)
     settings.add_user(admin_User)
 else:
     print('есть файл настроек')
@@ -52,7 +58,7 @@ else:
 
 # получение всех пользователей из БД
 # clients = settings.get_all_user()  # список всех клиентов
-admin_client = settings.get_user_type(Role.admin)  # список администраторов бота
+admin_client: List[User] = settings.get_user_type(Role.admin)  # список администраторов бота
 # END настройки бота
 
 
@@ -708,12 +714,14 @@ async def typeresult_cmd(event):
     elif message == '/QualityResult':
         new_message = 'Выберите качество результирующего файла.'
         button = button_qualityresult
+    else:
+        print('Не та команды')
 
     await event.respond(new_message, buttons=button)
 
 
 @bot.on(events.NewMessage(pattern='/TypeResultSound|/TypeResultVideo'))
-async def typeresult_cmd(event):
+async def typeresultsettings_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
     sender_id = sender.id
