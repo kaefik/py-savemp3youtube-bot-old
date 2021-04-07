@@ -75,7 +75,7 @@ else:
                          proxy=proxy).start(bot_token=bot_token)
 
 # флаг режима администратора
-flag_admin = False
+flag_admin: bool = False
 
 # кнопки главного режима для администратора
 button_main_admin = [
@@ -124,15 +124,15 @@ button_qualityresult = [
     ]
 ]
 
-db_user_bot = "db_user_allow.txt"
-rexp_http_url = r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)"
+db_user_bot: str = "db_user_allow.txt"
+rexp_http_url: str = r"https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)"
 
 
 # ---- END Начальные данные ----
 
 # ----- Вспомогательные функции
 
-def get_help(filename='help.txt'):
+def get_help(filename: str = 'help.txt') -> str:
     """
         получаем текст для помощи о командах бота
     """
@@ -143,44 +143,44 @@ def get_help(filename='help.txt'):
 
 
 # проверка на разрешенного пользователя
-def is_allow_user(iduser, allow_users):
+def is_allow_user(id_user: int, allow_users: List[User]) -> bool:
     for user in allow_users:
-        if user.id == iduser:
+        if user.id == id_user:
             return True
     return False
 
 
 # добавляем пользователя в БД пользователей которые имеют доступ к боту
 # возвращает True 
-def add_new_user(id, settings):
+def add_new_user(id: int, settings: SettingUser) -> bool:
     new_user = User(id=id)
     settings.add_user(new_user)
     return True
 
 
 # возвращает список пользователей которые имеют доступ к боту
-def read_user_db(settings):
-    result = []
+def read_user_db(settings: SettingUser) -> List[User]:
+    result: List[User] = []
     clients = settings.get_all_user()
     for cl in clients:
         result.append(cl.__str__())
     return result
 
 
-async def get_name_user(client, user_id):
+async def get_name_user(client, user_id: int) -> str:
     """
         получаем информацию о пользователе телеграмма по его user_id (user_id тип int)
     """
     try:
-        new_name_user = await client.get_entity(user_id)
-        new_name_user = new_name_user.first_name
+        user = await client.get_entity(user_id)
+        new_name_user = user.first_name
     except ValueError as err:
         print('Ошибка получения информации о пользователе по id: ', err)
         new_name_user = ''
     return new_name_user
 
 
-async def check_name_user_empty(client, sender_id, db):
+async def check_name_user_empty(client, sender_id: int, db: SettingUser) -> str:
     """
         проверим есть ли у этого пользователя имя пользователя в нашей БД настроек
         возвращает имя пользователя
@@ -207,7 +207,7 @@ async def handler(event):
 async def start_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
-    sender_id = sender.id
+    sender_id: int = sender.id
 
     if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
@@ -215,17 +215,16 @@ async def start_cmd(event):
         return
     # END проверка на право доступа к боту
 
-    user_name = await check_name_user_empty(event.client, sender_id, settings)
+    user: User = await check_name_user_empty(event.client, sender_id, settings)
 
-    if user_name.role == Role.admin:
+    if user.role == Role.admin:
         buttons = button_main_admin
     else:
         buttons = button_main_user
 
-    await event.respond(f"Привет, {user_name.name}! Я рад видеть тебя!\n" \
+    await event.respond(f"Привет, {user.name}! Я рад видеть тебя!\n"
                         "Пришли мне ссылку на клип ютуба, обратно получите его аудио дорожку.",
-                        buttons=buttons
-                        )
+                        buttons=buttons)
     raise events.StopPropagation
 
 
@@ -233,7 +232,7 @@ async def start_cmd(event):
 async def about_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
-    sender_id = sender.id
+    sender_id: int = sender.id
     if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
@@ -247,7 +246,7 @@ async def about_cmd(event):
 async def clear_all_mp3(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
-    sender_id = sender.id
+    sender_id: int = sender.id
     if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
@@ -255,8 +254,8 @@ async def clear_all_mp3(event):
     # END проверка на право доступа к боту
 
     await event.respond("Очистка папки mp3 от файлов...")
-    user_folder = str(sender.id)
-    folder_mp3 = f"{path_mp3}/{user_folder}"
+    user_folder: str = str(sender.id)
+    folder_mp3: str = f"{path_mp3}/{user_folder}"
 
     done, pending = await asyncio.wait([
         run_cmd(f"ls {folder_mp3}")
@@ -270,7 +269,7 @@ async def clear_all_mp3(event):
     if code != 0:
         await event.respond(error.decode("utf8"))
 
-    result = result.decode("utf8")
+    result: str = result.decode("utf8")
     if len(result) == 0:
         await event.respond("Файлов на удаления нет.")
         return
@@ -287,7 +286,7 @@ async def clear_all_mp3(event):
     if code != 0:
         await event.respond(error.decode("utf8"))
 
-    result = result.decode("utf8")
+    # result = result.decode("utf8")
     # print("result = ", result)
     # await event.respond(result)
 
@@ -298,7 +297,7 @@ async def clear_all_mp3(event):
 async def help_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
-    sender_id = sender.id
+    sender_id: str = sender.id
     if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
@@ -309,14 +308,12 @@ async def help_cmd(event):
 
 
 # получение урл
-@bot.on(events.NewMessage(
-    pattern=r".*\n*" + rexp_http_url)
-)
+@bot.on(events.NewMessage(pattern=r".*\n*" + rexp_http_url))
 async def get_mp3_from_youtube(event):
     print("get_mp3_from_youtube start subprocess begin")
     sender = await event.get_sender()
     # проверка на право доступа к боту
-    sender_id = sender.id
+    sender_id: int = sender.id
     if not is_allow_user(sender_id, settings.get_all_user()):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору" \
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
@@ -331,19 +328,19 @@ async def get_mp3_from_youtube(event):
 
     # buttons = await event.get_buttons()
     # print(sender.id)
-    user_folder = str(sender.id)
+    user_folder: str = str(sender.id)
     # print(event.raw_text)
     # выделение урл из общей массы сообщения
     match = re.search(rexp_http_url, event.raw_text)
-    url_youtube = match.group()
+    url_youtube: str = match.group()
     print(url_youtube)
 
     if current_user.typeresult == TypeResult.sound:
 
         await event.respond("Начало конвертации ютуб клипа в mp3...")
         # print("get_mp3_from_youtube start subprocess begin")
-        cmds = f'youtube-dl --extract-audio --audio-format mp3 ' \
-               f'--output "{path_mp3}/{user_folder}/%(title)s.%(ext)s" {url_youtube}'
+        cmds: str = f'youtube-dl --extract-audio --audio-format mp3 ' \
+                    f'--output "{path_mp3}/{user_folder}/%(title)s.%(ext)s" {url_youtube}'
         # print(cmds)
 
         done, _ = await asyncio.wait([
@@ -361,9 +358,9 @@ async def get_mp3_from_youtube(event):
             return
 
         result = result.decode("utf-8")
-        str_result = result.split("\n")
-        str_search = "[ffmpeg] Destination:"
-        file_mp3 = ""
+        str_result: str = result.split("\n")
+        str_search: str = "[ffmpeg] Destination:"
+        file_mp3: str = ""
         for s in str_result:
             if str_search in s:
                 file_mp3 = s[len(str_search):].strip()
@@ -371,8 +368,8 @@ async def get_mp3_from_youtube(event):
 
         await event.respond("mp3 файл скачан...будем делить на части")
         # деление mp3 файла на части, если нужно с помощью команды mp3splt
-        timesplit = "59.0"  # длительность каждой части формат: минуты.секунда
-        cmds2 = f'mp3splt -t {timesplit} "{file_mp3}"'
+        timesplit: str = "59.0"  # длительность каждой части формат: минуты.секунда
+        cmds2: str = f'mp3splt -t {timesplit} "{file_mp3}"'
 
         # print(cmds)
 
@@ -390,10 +387,10 @@ async def get_mp3_from_youtube(event):
                                 f"Внутреняя ошибка: {error2}")
             return
 
-        result2 = result2.decode("utf-8")
+        result2: str = result2.decode("utf-8")
         str_result2 = result2.split("\n")
         str_search2 = "File"
-        files_mp3 = []
+        files_mp3: List[str] = []
         for s in str_result2:
             if str_search2 in s:
                 ss = s[s.index('"') + 1:]
@@ -418,7 +415,7 @@ async def get_mp3_from_youtube(event):
     elif current_user.typeresult == TypeResult.video:  # качаем видео
         await event.respond("Начало конвертации ютуб клипа в видео...")
 
-        quality_video = 360
+        quality_video: int = 360
 
         if current_user.qualityresult == QualityResult.high:
             quality_video = 720
@@ -429,8 +426,8 @@ async def get_mp3_from_youtube(event):
 
         await event.respond(f"Качество видео {quality_video}p")
 
-        cmds = f'youtube-dl -f "bestvideo[height<={quality_video}]+bestaudio/best[height<={quality_video}]"' \
-               f' --output "{path_mp3}/{user_folder}/%(title)s.%(ext)s" "{url_youtube}"'
+        cmds: str = f'youtube-dl -f "bestvideo[height<={quality_video}]+bestaudio/best[height<={quality_video}]"' \
+                    f' --output "{path_mp3}/{user_folder}/%(title)s.%(ext)s" "{url_youtube}"'
         # print(cmds)
 
         done, _ = await asyncio.wait([
@@ -447,13 +444,13 @@ async def get_mp3_from_youtube(event):
                                 f"Внутреняя ошибка: {error}")
             return
 
-        result = result.decode("utf-8")
-        str_result = result.split("\n")
+        result: str = result.decode("utf-8")
+        str_result: str = result.split("\n")
 
-        str_search_already_begin = '[download]'
-        str_search_already_back = 'has already been downloaded and merged'
-        str_search = "[ffmpeg] Merging formats into"
-        file_video = ""
+        str_search_already_begin: str = '[download]'
+        str_search_already_back: str = 'has already been downloaded and merged'
+        str_search: str = "[ffmpeg] Merging formats into"
+        file_video: str = ""
 
         if result.find(str_search_already_back) > -1:
             # видео уже есть
@@ -461,7 +458,7 @@ async def get_mp3_from_youtube(event):
                 if str_search_already_begin in s:
                     file_video = s[len(str_search_already_begin):-len(str_search_already_back)].strip()
                     break
-            file_video = file_video.replace('"', '')
+            file_video: str = file_video.replace('"', '')
             print(file_video)
             await event.respond("Это видео уже было получено ранее.")
 
@@ -471,7 +468,7 @@ async def get_mp3_from_youtube(event):
                 if str_search in s:
                     file_video = s[len(str_search):].strip()
                     break
-            file_video = file_video.replace('"', '')
+            file_video: str = file_video.replace('"', '')
             print(file_video)
 
         if (os.path.getsize(file_video) / 1048576) <= 60:  # размер файла (Мб)
@@ -493,10 +490,10 @@ async def get_mp3_from_youtube(event):
 
         await event.respond("видео файл скачан...будем делить на части")
         # деление видео файла на части, если нужно с помощью команды ffmpeg
-        timesplit = "3600"  # длительность каждой части формат: секунда
+        timesplit: str = "3600"  # длительность каждой части формат: секунда
         filename, file_extension = os.path.splitext(file_video)
-        cmds2 = f'ffmpeg -i "{file_video}" -acodec copy -f segment -segment_time {timesplit} -vcodec copy -reset_timestamps 1 ' \
-                f'-map 0 "{filename}_%03d{file_extension}"'
+        cmds2: str = f'ffmpeg -i "{file_video}" -acodec copy -f segment -segment_time {timesplit} -vcodec copy -reset_timestamps 1 ' \
+                     f'-map 0 "{filename}_%03d{file_extension}"'
 
         print(cmds2)
 
@@ -524,12 +521,12 @@ async def get_mp3_from_youtube(event):
         # print(result2)
 
         # определяем имена файлов которые получились при разделении файлов
-        str_search_split_begin = 'Opening'
-        str_search_split_end = 'for writing'
-        files_video = []
+        str_search_split_begin: str = 'Opening'
+        str_search_split_end: str = 'for writing'
+        files_video: List[str] = []
         for s in str_result2:
             if str_search_split_begin in s:
-                f_video = s[s.index(str_search_split_begin) + 7:-len(str_search_split_end)].strip()
+                f_video: str = s[s.index(str_search_split_begin) + 7:-len(str_search_split_end)].strip()
                 f_video = f_video.replace("'", '')
                 # print(f_video)
                 files_video.append(f_video)
@@ -558,7 +555,7 @@ async def get_mp3_from_youtube(event):
 async def admin_cmd(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
-    sender_id = sender.id
+    sender_id: int = sender.id
     if not is_allow_user(sender_id, admin_client):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
@@ -572,7 +569,7 @@ async def admin_cmd(event):
 async def add_user_admin(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
-    sender_id = sender.id
+    sender_id: int = sender.id
     if not is_allow_user(sender_id, admin_client):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
@@ -580,7 +577,7 @@ async def add_user_admin(event):
     # END проверка на право доступа к боту
     await event.respond("Выполняется команда /AddUSer")
     # диалог с запросом информации нужной для работы команды /AddUser
-    chat_id = event.chat_id
+    chat_id: int = event.chat_id
     async with bot.conversation(chat_id) as conv:
         # response = conv.wait_event(events.NewMessage(incoming=True))
         await conv.send_message("Привет! Введите номер id пользователя"
@@ -605,7 +602,7 @@ async def add_user_admin(event):
 async def del_user_admin(event):
     sender = await event.get_sender()
     # проверка на право доступа к боту
-    sender_id = sender.id
+    sender_id: int = sender.id
     if not is_allow_user(sender_id, admin_client):
         await event.respond(f"Доступ запрещен. Обратитесь к администратору"
                             f" чтобы добавил ваш ID в белый список. Ваш ID {sender_id}")
@@ -613,7 +610,7 @@ async def del_user_admin(event):
     # END проверка на право доступа к боту
     await event.respond("Выполняется команда /DelUSer")
     # диалог с запросом информации нужной для работы команды /DelUser
-    chat_id = event.chat_id
+    chat_id: int = event.chat_id
     async with bot.conversation(chat_id) as conv:
         # response = conv.wait_event(events.NewMessage(incoming=True))
         await conv.send_message("Привет! Введите номер id пользователя "
