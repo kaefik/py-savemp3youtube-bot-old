@@ -33,20 +33,21 @@ class QualityResult(Enum):
 # данные конкретного пользователя
 class User:
 
-    def __init__(self, id=-1):
-        self._id = id
-        self._name = ''
-        self._active = False
-        self._role = Role.user
-        self._typeresult = TypeResult.sound
-        self._qualityresult = QualityResult.medium
+    # def __init__(self, id=-1):
+    #     self._id = id
+    #     self._name = ''
+    #     self._active = False
+    #     self._role = Role.user
+    #     self._typeresult = TypeResult.sound
+    #     self._qualityresult = QualityResult.medium
 
-    def __init__(self, id=-1, name='', active=False, role=Role.user, typeresult=TypeResult.sound,
-                 qualityresult=QualityResult.medium):
-        self._id = id
-        self._name = name
+    def __init__(self, id: int = -1, name: str = '', active: bool = False, role: Role = Role.user,
+                 typeresult: TypeResult = TypeResult.sound,
+                 qualityresult: QualityResult = QualityResult.medium) -> None:
+        self._id: int = id
+        self._name: str = name
         if active == 0:
-            self._active = False
+            self._active: bool = False
         else:
             self._active = True
 
@@ -84,38 +85,38 @@ class User:
             self._qualityresult = QualityResult.medium
 
     @property
-    def id(self):
+    def id(self) -> int:
         return self._id
 
     @id.setter
-    def id(self, my_id):
+    def id(self, my_id: int) -> None:
         self._id = my_id
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @name.setter
-    def name(self, new_name):
+    def name(self, new_name: str) -> None:
         self._name = new_name
 
     @property
-    def active(self):
+    def active(self) -> bool:
         return self._active
 
     @active.setter
-    def active(self, flag):
+    def active(self, flag: bool) -> None:
         if flag == 0:
             self._active = False
         else:
             self._active = True
 
     @property
-    def role(self):
+    def role(self) -> Role:
         return self._role
 
     @role.setter
-    def role(self, new_role):
+    def role(self, new_role: Role) -> None:
         # проверить соответствует ли new_role классу Role
         if type(new_role) is Role:
             self._role = new_role
@@ -126,11 +127,11 @@ class User:
                 self._role = Role.user
 
     @property
-    def typeresult(self):
+    def typeresult(self) -> TypeResult:
         return self._typeresult
 
     @typeresult.setter
-    def typeresult(self, new_type):
+    def typeresult(self, new_type: TypeResult) -> None:
         # проверить соответствует ли new_type классу TypeResult
         if type(new_type) is TypeResult:
             self._typeresult = new_type
@@ -143,12 +144,12 @@ class User:
                 self.new_type = TypeResult.sound
 
     @property
-    def qualityresult(self):
+    def qualityresult(self) -> QualityResult:
         # проверить соответствует ли new_type классу QualityResult
         return self._qualityresult
 
     @qualityresult.setter
-    def qualityresult(self, quality):
+    def qualityresult(self, quality: QualityResult) -> None:
         # проверить соответствует ли new_type классу QualityResult
 
         if type(quality) is QualityResult:
@@ -318,8 +319,6 @@ class SettingUser:
             self.add_user(new_user)
 
         cursor = self.connect.cursor()
-
-
 
         sqlite_update_user = f"""UPDATE user SET name ='{new_user.name}',  
                                 active = {new_user.active}
