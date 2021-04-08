@@ -405,7 +405,7 @@ class SettingUser:
 
         return result
 
-    def get_user_type(self, type_user: TypeResult) -> List[User]:
+    def get_user_type(self, type_user: Role) -> List[User]:
         """
             получение всех пользователей с типом type_user (тип Role)
             возвращает: массив пользователей, если пользователей нет, то пустой массив

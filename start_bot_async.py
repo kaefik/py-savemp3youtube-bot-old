@@ -63,7 +63,7 @@ admin_client: List[User] = settings.get_user_type(Role.admin)  # список а
 
 
 if proxy_server is None or proxy_port is None or proxy_key is None:
-    print("Нет настроек MTProto прокси сервера телеграмма.\n" \
+    print("Нет настроек MTProto прокси сервера телеграмма.\n"
           "Попытка подключения клиента без прокси.")
     bot = TelegramClient(app_name, app_api_id, app_api_hash).start(
         bot_token=bot_token
@@ -180,12 +180,14 @@ async def get_name_user(client, user_id: int) -> str:
     return new_name_user
 
 
-async def check_name_user_empty(client, sender_id: int, db: SettingUser) -> str:
+async def check_name_user_empty(client, sender_id: int, db: SettingUser) -> Optional[User]:
     """
         проверим есть ли у этого пользователя имя пользователя в нашей БД настроек
-        возвращает имя пользователя
+        возвращает имя пользователя если оно есть, иначе пустая строка
     """
     user_name = db.get_user(sender_id)
+    if user_name is None:
+        return None
     # print(f'Имя пользователя в БД {user_name}')
     user_name_tlg = await get_name_user(client, sender_id)
     # print(f'Имя пользователя в Телеграмме {user_name_tlg}')
