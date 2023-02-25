@@ -1,6 +1,9 @@
 О проекте
 
-[py-savemp3youtube-bot](https://github.com/kaefik/py-savemp3youtube-bot) - телеграмм бот получает ссылку на видео ютуба и возвращает звуковую дорожку видео.
+РЕКОМЕНДУЮ использовать другую версию проекта сохранения аудио из ютуб-видео [py-savemp3youtube-cmdbot](https://github.com/kaefik/py-savemp3youtube-cmdbot)
+
+[py-savemp3youtube-bot](https://github.com/kaefik/py-savemp3youtube-bot-old) - телеграмм бот получает ссылку на видео ютуба и возвращает звуковую дорожку видео. 
+
 
 ## Реализованные возможности:
 
