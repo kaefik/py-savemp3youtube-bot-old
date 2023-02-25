@@ -373,13 +373,14 @@ async def get_mp3_from_youtube(event):
                 if str_search in s:
                     file_mp3 = s[len(str_search):].strip()
                     break
+            file_mp3 = file_mp3.split(";")[0]
 
         await event.respond("mp3 файл скачан...будем делить на части")
         # деление mp3 файла на части, если нужно с помощью команды mp3splt
         timesplit = "59.0"  # длительность каждой части формат: минуты.секунда
         cmds2 = f'mp3splt -t {timesplit} "{file_mp3}"'
 
-        print(cmds)
+        print(cmds2)
 
         done2, _ = await asyncio.wait([
             run_cmd(cmds2)
@@ -394,10 +395,7 @@ async def get_mp3_from_youtube(event):
 
         if code2 != 0:
             await event.respond(f"!!!! код: {code2} \n" \
-                                f"Внутреняя ошибка: {error2}")
-
-
-
+                               f"Внутреняя ошибка: {error2}")
             return
 
         result2 = result2.decode("utf-8")
