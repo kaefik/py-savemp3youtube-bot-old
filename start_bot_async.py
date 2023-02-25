@@ -15,6 +15,7 @@ import re
 from i_utils import run_cmd
 from sqlitelib.sqliteutils import User, SettingUser, Role, TypeResult, QualityResult
 
+
 # ---- Начальные данные ----
 path_mp3 = "mp3"
 
@@ -336,7 +337,8 @@ async def get_mp3_from_youtube(event):
 
         await event.respond("Начало конвертации ютуб клипа в mp3...")
         # print("get_mp3_from_youtube start subprocess begin")
-        cmds = f'/home/oilnur/prj/prj-py/py-savemp3youtube-bot/yt-dlp_linux --extract-audio --audio-format mp3 ' \
+        cmd_yt_dlp=os.path.join(os.path.dirname(__file__), "yt-dlp_linux")
+        cmds = f'{cmd_yt_dlp} --extract-audio --audio-format mp3 ' \
                f'--output "{path_mp3}/{user_folder}/%(title)s.%(ext)s" {url_youtube}'
         # print(cmds)
 
